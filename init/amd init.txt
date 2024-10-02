@@ -63,6 +63,6 @@ bcdedit /set disabledynamictick yes
 禁用测通道缓解
 关闭快速启动
 禁用MPO
-禁用DEP
+禁用DEP: bcdedit.exe /set nx AlwaysOff
 禁用内存压缩
 禁用驱动页交换：DisablePagingExecutive
