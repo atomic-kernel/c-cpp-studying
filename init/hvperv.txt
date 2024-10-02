@@ -1,0 +1,18 @@
+开启SR-IOV
+(Get-VMHost).IovSupport; (Get-VMHost).IovSupportReasons
+
+删除检查点
+
+关闭动态内存
+
+$vm = "win"
+
+# win11
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+cd xxx
+.\Update-VMGpuPartitionDriver.ps1 -VMName $vm -GPUName "AUTO"
+
+Set-VM -VMName $vm -GuestControlledCacheTypes $true -LowMemoryMappedIoSpace 1Gb -HighMemoryMappedIoSpace 32Gb
+Add-VMGpuPartitionAdapter -VMName $vm
