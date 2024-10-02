@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source /bin/clang++-option
+
+clang++-18 --target=aarch64-linux-gnu -fno-addrsig -fuse-ld=lld-18 -Wno-unused-command-line-argument "${args[@]}" "$@"

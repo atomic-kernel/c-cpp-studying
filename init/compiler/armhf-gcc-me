@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source /bin/gcc-option
+
+arm-linux-gnueabihf-gcc-14 "${args[@]}" "$@"

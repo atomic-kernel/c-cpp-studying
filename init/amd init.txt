@@ -1,0 +1,68 @@
+# BIOS
+XMP
+SAM
+
+## PBO2
+SB
+fmax
+防掉压
+extreme
+PBO2
+
+## C-States：
+C-states
+DF Cstates
+APBDIS
+P0
+power supply idle control = typical current idle
+#ACPI C1 States
+
+## CPPC
+CPPC
+CPPC prefer core
+PSS
+
+## 内存超频 && 大小参
+频率
+电压
+fclk
+Gear down mode
+cmd2T
+uclk
+TSME
+DDR4内存安全
+
+## 其它
+fTPM
+core watchdog
+L1 stream hw prefetch
+x2APIC
+快速启动
+asid = 509
+mca error thresh enable
+PPIN Opt-in
+GMI encryption control
+xGMI encryption control
+CC6 memory region encryptio
+write crc enable
+dram write crc enable and retry limit
+disable memory error injecion = true
+dram ecc enable
+mbist enable
+dma protection
+dmar protection
+
+# Windows 设置：
+# 1. HPET
+设备管理器关闭高精度计时
+bcdedit /deletevalue useplatformclock
+bcdedit /set disabledynamictick yes
+
+# 2. 其它
+禁用异类调度
+禁用测通道缓解
+关闭快速启动
+禁用MPO
+禁用DEP
+禁用内存压缩
+禁用驱动页交换：DisablePagingExecutive

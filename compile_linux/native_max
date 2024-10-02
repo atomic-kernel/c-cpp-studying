@@ -1,0 +1,26 @@
+#!/bin/bash
+if echo "$@" | grep -q '\-m16\|\-m32\|\-march=i386'; then
+    # 关闭优化和-march
+gcc-12 "$@" -fstack-reuse=all -fno-float-store -fjump-tables -fbit-tests -ftrivial-auto-var-init=uninitialized -fstdarg-opt -fno-conserve-stack -fzero-call-used-regs=skip \
+    -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables \
+    -fstack-check=no -fno-stack-clash-protection -fno-stack-protector -fno-split-stack -fcf-protection=none -fno-sanitize=all -fno-instrument-functions \
+    -g0
+elif echo "$@" | grep -q march; then
+    # 关闭march
+    >&2 echo "$@"
+    exit 1
+elif echo "$@" | grep -q crypto/jitterentropy.c; then
+    # 关闭优化
+gcc-12 "$@" -fstack-reuse=all -fno-float-store -fjump-tables -fbit-tests -ftrivial-auto-var-init=uninitialized -fstdarg-opt -fno-conserve-stack -fzero-call-used-regs=skip \
+    -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables \
+    -fstack-check=no -fno-stack-clash-protection -fno-stack-protector -fno-split-stack -fcf-protection=none -fno-sanitize=all -fno-instrument-functions \
+    -g0 -march=native -mtune=native
+else
+    # 全开
+gcc-12 "$@" -fstack-reuse=all -fno-float-store -fjump-tables -fbit-tests -ftrivial-auto-var-init=uninitialized -fstdarg-opt -fno-conserve-stack -fzero-call-used-regs=skip \
+    -fomit-frame-pointer -fdelete-null-pointer-checks -ffinite-loops -foptimize-sibling-calls -ftree-loop-vectorize -ftree-slp-vectorize -ffast-math -ffp-contract=fast -fexcess-precision=fast -fno-signed-zeros -fno-trapping-math -fallow-store-data-races \
+    -fipa-pta -fdevirtualize-at-ltrans -fmerge-all-constants -funroll-all-loops \
+    -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables \
+    -fstack-check=no -fno-stack-clash-protection -fno-stack-protector -fno-split-stack -fcf-protection=none -fno-sanitize=all -fno-instrument-functions \
+    -g0 -Ofast -march=native -mtune=native
+fi

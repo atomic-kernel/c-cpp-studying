@@ -1,0 +1,91 @@
+# 1. 安装依赖 for x86_64 本机编译
+apt --no-install-recommends install gcc make libncurses-dev flex bison libelf-dev libssl-dev
+# 1. 安装依赖 for aarch64 交叉编译
+
+# 2. 替换优化gcc （可选）
+
+# 3. 获取源码和.config
+# 4. 建议关闭宏控： 
+#             调试相关：GCOV KASAN KCSAN KMSAN UBSAN KFENCE FTRACE STACKTRACE FRAME_POINTER(在x86上使用UNWINDER_ORC/UNWINDER_GUESS) PSTORE DEBUG_KERNEL DEBUG_FS
+#             安全性/稳定性：SPECULATION_MITIGATIONS STACKPROTECTOR INIT_STACK 各种HARDEN(包括Securit->harden里面的各种Memory initializatio) 各种RANDOMIZE KPROBE KALLSYMS RUNTIME_TESTING_MENU HACKING里面的几乎全
+#             功能：KGDB KEXEC 虚拟化
+# 4. gcc选项和宏控冲突关系：
+#    不支持 -fstrict-aliasing
+#    老版本内核不支持 -fmerge-all-constants
+#    KASAN KCSAN KMSAN UBSAN CONFIG_SHADOW_CALL_STACK 和 -fno-sanitize=all
+#    FTRACE FRAME_POINTER 和 -fomit-frame-pointer
+#    STACKPROTECTOR 和 -fno-stack-protector
+#    INIT_STACK 和 -ftrivial-auto-var-init=uninitialized
+#    KERNEL_DEBUG 和 -g
+#    FTRACE 和 -pg
+#    ZERO_CALL_USED_REGS 和 -fzero-call-used-regs=skip
+#    RETPOLINE 和 -fjump-tables
+# 5. 编译安装
+
+# 路线一：替换本机当前内核image，仍然使用本机当前的modules，缺点：不能修改宏控
+# 1. 获取对应版本内核源码和config文件
+# 1.1 Ubuntu原版内核源码文件：https://launchpad.net/ubuntu/+source/linux/5.19.0-26.27，下载 orig.tar.gz 和 diff.tar.gz ，自己打patch
+# 1.2 Ubuntu Mainline源码(https://git.launchpad.net/~ubuntu-kernel-test/ubuntu/+source/linux/+git/mainline-crack/)：git clone git://git.launchpad.net/~ubuntu-kernel-test/ubuntu/+source/linux/+git/mainline-crack -b cod/mainline/v6.0.9 --depth 1；在 https://kernel.ubuntu.com/~kernel-ppa/mainline/v6.0.9/ 网站上方有写，注意commit id；和原版内核源码几乎完全一致
+# 1.3 git clone git://git.launchpad.net/~ubuntu-kernel-test/ubuntu/+source/linux/+git/mainline-crack -b v6.0.9 --depth 1；和原版内核源码一致
+# 1.4 (https://kernel.ubuntu.com/git/kernel-ppa/stable-queue-branches.git/)git clone git://kernel.ubuntu.com/kernel-ppa/stable-queue-branches.git --branch v6.0.9 --depth 1；和原版内核源码一致
+# 1.5 git clone git://kernel.ubuntu.com/ubuntu-stable/ubuntu-stable-kinetic.git --branch Ubuntu-5.19.0-15.15 --depth 1
+# 1.6 config文件在 /boot/config-xxx
+# 2. 编译
+make menoconfig
+# 清空 CONFIG_SYSTEM_TRUSTED_KEYS
+# 清空 CONFIG_SYSTEM_REVOCATION_KEYS
+# （目前看来不需要）关闭 CONFIG_MODVERSION
+# （目前看来不需要）关闭 模块签名验证
+# 不能修改其他任何宏控
+
+# （目前看来不需要）修改 kernel/module/main.c ，注释 return -ENOEXEC 
+# 修改 kernel/module/version.c ，return 0;改成 return 1;
+
+make -j8 KERNELVERSION=6.0.9-060009-generic LOCALVERSION= bzImage
+# KERNELVERSION 和 LOCALVERSION=空 很重要，它关系到模块能否加载
+
+
+
+# 路线二：编译image和modules
+# 开关宏控
+make menuconfig
+make -j8 bzImage modules
+make modules_install
+
+
+# 路线三：替换本机当前内核，将所有modules编入内核中，缺点：这样会导致所有模块强制加载，不推荐，如果要用，就用xanmod的.config
+sed -i 's#=m$#=y#g' .config
+
+# 开关宏控
+# 关闭 CONFIG_FRAME_POINTER（和 -fomit-frame-pointer 冲突）
+# 关闭 FTRACE(如果要使用 -fomit-frame-pointer)
+# 关闭 CONFIG_STACK_VALIDATION (如果替换gcc优化)
+make menuconfig
+
+make -j8 bzImage
+
+
+# 仅安装内核
+mv arch/x86/boot/bzImage /boot/vmlinuz-6.0.9-060009-generic
+mv System.map /boot/System.map-6.0.9-060009-generic
+depmod -a
+update-initramfs -c -k 6.0.9-060009-generic
+update-grub
+
+# 安装内核、模块
+##和头文件
+cp arch/x86/boot/bzImage /boot/vmlinuz-6.1.0
+cp System.map /boot/System.map-6.1.0
+#make INSTALL_HDR_PATH=/usr/src/linux-headers-6.1.0 headers_install
+#make O=/usr/src/linux-headers-6.1.0 syncconfig prepare scripts
+make INSTALL_MOD_STRIP=1 modules_install
+depmod -a
+update-initramfs -c -k 6.1.0
+update-grub
+
+# 安装内核模块至指定路径：
+make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=fake_root modules_install
+
+# 安装headers至指定路径
+make INSTALL_HDR_PATH=fake_root/usr/src/linux-headers-6.1.0 headers_install
+make O=fake_root/usr/src/linux-headers-6.1.0 syncconfig prepare scripts

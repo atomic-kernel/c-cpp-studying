@@ -1,0 +1,15 @@
+#!/bin/bash
+base_flags=(
+    -fstack-reuse=all -fno-float-store -fjump-tables -fbit-tests -ftrivial-auto-var-init=uninitialized -fstdarg-opt -fno-conserve-stack -fzero-call-used-regs=skip
+    -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables
+    -fstack-check=no -fno-stack-clash-protection -fno-stack-protector -fno-split-stack -fcf-protection=none -fno-sanitize=all -fno-instrument-functions
+    )
+extra_optimize_flags=(-fipa-pta -fdevirtualize-at-ltrans -fmerge-all-constants -funroll-all-loops)
+
+if echo "$@" | grep -q crypto/jitterentropy.c; then
+    # 不增加额外优化
+    gcc-12 "${base_flags[@]}" "$@"
+else
+    # 增加额外优化
+    gcc-12 "${base_flags[@]}" "${extra_optimize_flags[@]}" "$@"
+fi

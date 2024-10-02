@@ -1,0 +1,33 @@
+# some config:
+CONFIG_DEBUG_KERNEL && CONFIG_DEBUG_INFO
+CONFIG_RANDOMIZE_BASE
+CONFIG_DEBUG_INFO_BTF
+
+# depends LLVM build with llvm version:
+apt --no-install-recommends -y install clang-17 lld-17 llvm-17 make bc flex bison python3-minimal libelf-dev libssl-dev libncurses-dev dwarves
+
+# depends LLVM build without llvm version:
+apt --no-install-recommends -y install clang lld llvm make bc flex bison python3-minimal libelf-dev libssl-dev libncurses-dev dwarves
+
+# x86_64 LLVM build with llvm version:
+make LLVM=1 LLVM_IAS=1 CC=clang-17 LD=ld.lld-17 AR=llvm-ar-17 NM=llvm-nm-17 STRIP=llvm-strip-17 OBJCOPY=llvm-objcopy-17 OBJDUMP=llvm-objdump-17 READELF=llvm-readelf-17 HOSTCC=clang-17 HOSTCXX=clang++-17 HOSTAR=llvm-ar-17 HOSTLD=ld.lld-17 KBUILD_BUILD_TIMESTAMP="2023-10-1" x86_64_defconfig
+make LLVM=1 LLVM_IAS=1 CC=clang-17 LD=ld.lld-17 AR=llvm-ar-17 NM=llvm-nm-17 STRIP=llvm-strip-17 OBJCOPY=llvm-objcopy-17 OBJDUMP=llvm-objdump-17 READELF=llvm-readelf-17 HOSTCC=clang-17 HOSTCXX=clang++-17 HOSTAR=llvm-ar-17 HOSTLD=ld.lld-17 KBUILD_BUILD_TIMESTAMP="2023-10-1" menuconfig
+make LLVM=1 LLVM_IAS=1 CC=clang-17 LD=ld.lld-17 AR=llvm-ar-17 NM=llvm-nm-17 STRIP=llvm-strip-17 OBJCOPY=llvm-objcopy-17 OBJDUMP=llvm-objdump-17 READELF=llvm-readelf-17 HOSTCC=clang-17 HOSTCXX=clang++-17 HOSTAR=llvm-ar-17 HOSTLD=ld.lld-17 KBUILD_BUILD_TIMESTAMP="2023-10-1" -j$((2*$(nproc))) bzImage
+
+# x86_64 LLVM build without llvm version:
+make LLVM=1 LLVM_IAS=1 KBUILD_BUILD_TIMESTAMP="2023-10-1" x86_64_defconfig
+make LLVM=1 LLVM_IAS=1 KBUILD_BUILD_TIMESTAMP="2023-10-1" menuconfig
+make LLVM=1 LLVM_IAS=1 KBUILD_BUILD_TIMESTAMP="2023-10-1" -j$((2*$(nproc))) bzImage
+
+# aarch64 LLVM build with llvm version:
+make ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=aarch64-clang-me-build LD=ld.lld-18 AR=llvm-ar-18 NM=llvm-nm-18 STRIP=llvm-strip-18 OBJCOPY=llvm-objcopy-18 OBJDUMP=llvm-objdump-18 READELF=llvm-readelf-18 HOSTCC=clang-18 HOSTCXX=clang++-18 HOSTAR=llvm-ar-18 HOSTLD=ld.lld-18 -j$((2*$(nproc))) defconfig
+make ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=aarch64-clang-me-build LD=ld.lld-18 AR=llvm-ar-18 NM=llvm-nm-18 STRIP=llvm-strip-18 OBJCOPY=llvm-objcopy-18 OBJDUMP=llvm-objdump-18 READELF=llvm-readelf-18 HOSTCC=clang-18 HOSTCXX=clang++-18 HOSTAR=llvm-ar-18 HOSTLD=ld.lld-18 -j$((2*$(nproc))) menuconfig
+make ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=aarch64-clang-me-build LD=ld.lld-18 AR=llvm-ar-18 NM=llvm-nm-18 STRIP=llvm-strip-18 OBJCOPY=llvm-objcopy-18 OBJDUMP=llvm-objdump-18 READELF=llvm-readelf-18 HOSTCC=clang-18 HOSTCXX=clang++-18 HOSTAR=llvm-ar-18 HOSTLD=ld.lld-18 -j$((2*$(nproc))) zImage
+
+
+find . | cpio -o -H newc > ../rootfs.cpio
+
+apt --no-install-recommends install qemu-system-arm ipxe-qemu
+qemu-system-aarch64 -machine virt -cpu cortex-a76 -nographic -smp 1 -m 4g -kernel Image -initrd rootfs.cpio -append 'nokslr rdinit=/bin/login -p -f root'
+apt --no-install-recommends install qemu-system-x86
+qemu-system-x86_64 -accel kvm -cpu host -nographic -smp 1 -m 2g -kernel bzImage -drive file=disk.ext4,format=raw -append 'console=ttyS0 root=/dev/sda ro init=/a.out'

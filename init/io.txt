@@ -1,0 +1,24 @@
+# 当已经使用了百分之多少的内存作为写缓存后，减慢进程写入速度
+echo 100 > /proc/sys/vm/dirty_ratio
+# 当已经使用了百分之多少的内存作为写缓存后，开始写入磁盘
+echo 0 > /proc/sys/vm/dirty_background_ratio
+# 最高可接受的写入延迟（ms）
+echo 60000 > /proc/sys/vm/dirty_expire_centisecs
+echo 60000 > /proc/sys/vm/dirty_writeback_centisecs
+
+# systctl.conf
+vm.dirty_ratio = 100
+vm.dirty_background_ratio = 0
+vm.dirty_expire_centisecs = 60000
+vm.dirty_writeback_centisecs = 60000
+
+
+# mount
+ext4: async,noatime,barrier=0
+f2fs: async,noatime,nobarrier,fsync_mode=nobarrier,noquota,disable_roll_forward
+
+zfs:
+atime=off
+relatime=off
+sync=disabled
+checksum=off

@@ -1,0 +1,118 @@
+apt update
+apt --no-install-recommends --auto-remove --purge -y full-upgrade
+apt update
+apt --no-install-recommends --auto-remove --purge -y full-upgrade
+apt --no-install-recommends -y install proot wget
+
+#下载base-files解压
+mkdir fedora
+cd fedora
+mkdir root shm run tmp
+chmod 0777 tmp
+chmod 0755 run
+chmod 0777 shm
+
+## 使用编译的静态tar
+mkdir -p root/temp_for_extra
+wget -O root/temp_for_extra/fedora.tar.xz "https://download.fedoraproject.org/pub/fedora/linux/releases/36/Container/aarch64/images/Fedora-Container-Minimal-Base-36-1.5.aarch64.tar.xz"
+#wget -O root/temp_for_extra/fedora.tar.xz "https://download.fedoraproject.org/pub/fedora/linux/releases/36/Container/aarch64/images/Fedora-Container-Base-36-1.5.aarch64.tar.xz"
+tar -C root/temp_for_extra -xJf root/temp_for_extra/fedora.tar.xz
+wget -O root/temp_for_extra/tar https://github.com/youngbe/c-cpp-studying/raw/main/termux/tar_static_arm64
+chmod +x root/temp_for_extra/tar
+unset LD_PRELOAD && env -i /data/data/com.termux/files/usr/bin/proot \
+ -r /data/data/com.termux/files/home/fedora/root \
+-0  -w "/" --sysvipc -l --kill-on-exit -v -1 \
+/temp_for_extra/tar --delay-directory-restore --preserve-permissions \
+--exclude='dev' --exclude='tmp' --exclude='run' \
+-xf /temp_for_extra/f7486cfe07a7ec9a1dfdd8126998155384aa891338b5adc1ca97c590aa8b5e9b/layer.tar
+chmod 0700 root
+rm -rf root/temp_for_extra
+
+# 使用系统tar
+mkdir temp_for_extra
+wget -O temp_for_extra/fedora.tar.xz "https://download.fedoraproject.org/pub/fedora/linux/releases/36/Container/aarch64/images/Fedora-Container-Minimal-Base-36-1.5.aarch64.tar.xz"
+tar -C temp_for_extra -xJf temp_for_extra/fedora.tar.xz
+unset LD_PRELOAD && env -i /data/data/com.termux/files/usr/bin/proot \
+-0  -w "/" --sysvipc -l --kill-on-exit -v -1 \
+/data/data/com.termux/files/usr/bin/tar --delay-directory-restore --preserve-permissions \
+--exclude='dev' --exclude='tmp' --exclude='run' \
+-C /data/data/com.termux/files/home/fedora/root \
+-xf /data/data/com.termux/files/home/fedora/temp_for_extra/f7486cfe07a7ec9a1dfdd8126998155384aa891338b5adc1ca97c590aa8b5e9b/layer.tar
+rm -rf temp_for_extra
+chmod 0700 root
+
+
+
+# 设置 resolv.conf
+echo "nameserver 1.1.1.1" >> root/etc/resolv.conf
+#echo "nameserver 119.29.29.29" >> root/etc/resolv.conf
+
+# 安装su
+unset LD_PRELOAD && env -i LANG=C.UTF-8 LANGUAGE=C.UTF-8 TERM=xterm-256color \
+/data/data/com.termux/files/usr/bin/proot -m /sys -m /proc -m /dev \
+-m /data/data/com.termux/files/home/fedora/shm:/dev/shm \
+-m /data/data/com.termux/files/home/fedora/run:/run \
+-m /data/data/com.termux/files/home/fedora/tmp:/tmp \
+ -r /data/data/com.termux/files/home/fedora/root \
+ -0 -w /root --sysvipc -l --kill-on-exit -v -1 \
+/bin/microdnf -y --setopt=install_weak_deps=0 install util-linux
+
+# 不需要设置 hosts
+#配置 /etc/ld.so.preload？
+#设置 proc？
+# 不需要修复用户
+
+
+# 登录：
+-0 root用户登陆
+-w 登陆的路径
+--sysvipc 系统五信号量
+-l 兼容性创建硬链接
+--kill-on-exit 退出时杀死容器进程
+-v -1 关闭log
+unset LD_PRELOAD && env -i LANG=C.UTF-8 LANGUAGE=C.UTF-8 TERM=xterm-256color \
+/data/data/com.termux/files/usr/bin/proot -m /sys -m /proc -m /dev \
+-m /data/data/com.termux/files/home/fedora/shm:/dev/shm \
+-m /data/data/com.termux/files/home/fedora/run:/run \
+-m /data/data/com.termux/files/home/fedora/tmp:/tmp \
+ -r /data/data/com.termux/files/home/fedora/root \
+ -0 -w /root --sysvipc -l --kill-on-exit -v -1 \
+ /bin/su -l root
+
+#首次登陆运行:
+microdnf -y --setopt=install_weak_deps=0 install dnf
+dnf -y --setopt=install_weak_deps=0 upgrade
+dnf -y --setopt=install_weak_deps=0 autoremove
+dnf -y --setopt=install_weak_deps=0 install glibc-langpack-zh
+export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8
+echo "export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8" >> "$HOME/.profile"
+
+# 安装图形化界面
+# fedora没有pm-utils
+dnf --setopt=install_weak_deps=0 install xfce4-session xfce4-panel xfce4-settings thunar dbus-x11 xfwm4 xfce4-terminal xfdesktop firefox pipewire at-spi2-core elementary-xfce-icon-theme xfce4-pulseaudio-plugin langpacks-zh_CN xfce-polkit polkit xfce4-notifyd
+#显卡驱动
+dnf --setopt=install_weak_deps=0 install mesa-dri-drivers mesa-vulkan-drivers mesa-libEGL mesa-libGL libglvnd libglvnd-egl libglvnd-gles libglvnd-glx libglvnd-opengl vulkan-loader
+
+export DISPLAY=127.0.0.1:0 PULSE_SERVER=tcp:127.0.0.1:4713 MOZ_FAKE_NO_SANDBOX=1
+echo "export DISPLAY=127.0.0.1:0 PULSE_SERVER=tcp:127.0.0.1:4713 MOZ_FAKE_NO_SANDBOX=1" >> "$HOME/.profile"
+# 启动图形化界面
+xfce4-session
+
+# qt 使用Xephyr或者VNC开启
+# Xephyr
+dnf --setopt=install_weak_deps=0 install xorg-x11-server-Xephyr
+Xephyr -screen 2560x1600x16 :1
+DISPLAY=:1 xfce4-session
+
+# 安装VNC
+# 退出ubuntu到termux
+apt --no-install-recommends -y install x11-repo
+apt --no-install-recommends -y install tigervnc
+vncserver :2 -auth /data/data/com.termux/files/home/fedora/root/root/.Xauthority \
+-geometry 2560x1600 -depth 16  \
+-noxstartup -listen TCP
+# 登陆系统运行
+DISPLAY=:2 xfce4-session
+# VNC客户端画质设为中
+# 退出
+vncserver -kill :2

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source /bin/g++-option
+
+arm-linux-gnueabi-g++-14 "${args[@]}" "$@"

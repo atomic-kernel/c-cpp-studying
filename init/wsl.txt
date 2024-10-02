@@ -1,0 +1,50 @@
+wsl --install --no-distribution -n
+wsl --update
+wsl --version
+wsl --set-default-version 2
+wsl --import Ubuntu-24.04 f:\wsl\ubuntu_24_04 E:\xiazai\ubuntu-base-24.04-base-amd64.tar.gz --version 2
+# wsl -d Ubuntu-24.04 -u root --cd /root -e env -i TERM=xterm-256color /bin/su -l root
+# wsl -d Ubuntu-24.04 -u root --cd /root -e /bin/bash --login
+wsl -d Ubuntu-24.04 -u root --cd /root -e /bin/login -p -f root
+
+# 老版本sources.list
+sed -i 's@^deb http://archive.ubuntu.com/ubuntu/@deb \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
+sed -i 's@^deb http://security.ubuntu.com/ubuntu/@deb \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
+sed -i 's@^# deb-src http://archive.ubuntu.com/ubuntu/@deb-src \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
+sed -i 's@^# deb-src http://security.ubuntu.com/ubuntu/@deb-src \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
+
+# 新版本sources.list
+sed -i 's@^URIs: http://archive.ubuntu.com/ubuntu/@URIs: http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list.d/ubuntu.sources
+sed -i 's@^URIs: http://security.ubuntu.com/ubuntu/@URIs: http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list.d/ubuntu.sources
+sed -i 's@^Types: deb@Types: deb-src deb@g' /etc/apt/sources.list.d/ubuntu.sources
+
+apt update
+apt --no-install-recommends -y install apt-utils
+apt --no-install-recommends -y install whiptail
+apt --no-install-recommends --auto-remove --purge -y full-upgrade
+apt --no-install-recommends -y install language-pack-zh-hans systemd-sysv
+export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8
+echo "export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8" >> "$HOME/.profile"
+echo '[boot]' > /etc/wsl.conf
+echo 'systemd=true' >> /etc/wsl.conf
+exit
+
+wsl --shutdown
+wsl -d Ubuntu-24.04 -u root --cd /root -e /bin/login -p -f root
+
+
+# 其它：
+wsl -l --all -v
+wsl --shutdown
+wsl --unregister Ubuntu-23.10
+wsl -d Ubuntu-23.10 hostname -I
+
+# 配置文件 C:\Users\xxx\.wslconfig
+[wsl2]
+#pageReporting=false
+processors=20
+swap=0
+memory=12GB
+#kernel=F:\\wsl\\files\\bzImage
+kernelCommandLine='nospec_store_bypass_disable spec_store_bypass_disable=off nospectre_v1 nospectre_v2 spectre_v2=off mitigations=off spectre_v2_user=off mds=off nopti l1tf=off audit=0 ima=off evm=fix selinux=0'
+#debugConsole=true

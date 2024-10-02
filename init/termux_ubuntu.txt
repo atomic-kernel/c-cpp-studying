@@ -1,0 +1,124 @@
+pkg install
+apt --no-install-recommends --auto-remove --purge -y full-upgrade
+pkg install
+apt --no-install-recommends --auto-remove --purge -y full-upgrade
+apt --no-install-recommends -y install proot wget
+
+#下载base-files解压
+mkdir ubuntu
+cd ubuntu
+mkdir root shm run tmp
+chmod 0777 tmp
+chmod 0755 run
+chmod 0777 shm
+
+## 使用编译的静态tar
+mkdir -p root/temp_for_extra
+curl -Lo root/temp_for_extra/ubuntu.tar.gz "https://cdimage.ubuntu.com/ubuntu-base/releases/23.04/release/ubuntu-base-23.04-base-arm64.tar.gz"
+gzip -d root/temp_for_extra/ubuntu.tar.gz
+curl -Lo root/temp_for_extra/tar https://github.com/youngbe/c-cpp-studying/raw/main/init/tar_static_arm64
+chmod +x root/temp_for_extra/tar
+env -i /data/data/com.termux/files/usr/bin/proot \
+ -r /data/data/com.termux/files/home/ubuntu/root \
+-0  -w "/" --sysvipc -l --kill-on-exit -v -1 \
+/temp_for_extra/tar --delay-directory-restore --preserve-permissions \
+--exclude='dev' --exclude='tmp' --exclude='run' \
+-xf /temp_for_extra/ubuntu.tar
+rm -rf root/temp_for_extra
+
+# 使用系统tar
+wget -O root/ubuntu.tar.gz "https://cdimage.ubuntu.com/ubuntu-base/releases/22.04/release/ubuntu-base-22.04-base-arm64.tar.gz"
+proot --link2symlink tar --delay-directory-restore --preserve-permissions -xzf root/ubuntu.tar.gz -C root
+rm root/ubuntu.tar.gz
+
+
+# 设置 resolv.conf
+echo "nameserver 1.1.1.1" >> root/etc/resolv.conf
+#echo "nameserver 119.29.29.29" >> root/etc/resolv.conf
+
+# 设置 hosts
+cat > root/etc/hosts << EOF
+127.0.0.1	localhost
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+EOF
+
+#配置 /etc/ld.so.preload？
+#设置 proc？
+
+
+
+# 修复用户:
+unset LD_PRELOAD && proot --bind=/sys --bind=/proc --bind=/dev --bind=/data/data/com.termux/files/home/ubuntu/shm:/dev/shm --root-id --cwd=/root --sysvipc --link2symlink --kill-on-exit --rootfs=/data/data/com.termux/files/home/ubuntu/root /usr/bin/env -i LANG=C.UTF-8 LANGUAGE=C.UTF-8 TERM=xterm-256color /usr/sbin/addgroup --system --gid 3003 inet
+unset LD_PRELOAD && proot --bind=/sys --bind=/proc --bind=/dev --bind=/data/data/com.termux/files/home/ubuntu/shm:/dev/shm --root-id --cwd=/root --sysvipc --link2symlink --kill-on-exit --rootfs=/data/data/com.termux/files/home/ubuntu/root /usr/bin/env -i LANG=C.UTF-8 LANGUAGE=C.UTF-8 TERM=xterm-256color /usr/sbin/addgroup --system --gid 9997 everybody
+unset LD_PRELOAD && proot --bind=/sys --bind=/proc --bind=/dev --bind=/data/data/com.termux/files/home/ubuntu/shm:/dev/shm --root-id --cwd=/root --sysvipc --link2symlink --kill-on-exit --rootfs=/data/data/com.termux/files/home/ubuntu/root /usr/bin/env -i LANG=C.UTF-8 LANGUAGE=C.UTF-8 TERM=xterm-256color /usr/sbin/addgroup --system --gid 20213 u0_a213_cache
+unset LD_PRELOAD && proot --bind=/sys --bind=/proc --bind=/dev --bind=/data/data/com.termux/files/home/ubuntu/shm:/dev/shm --root-id --cwd=/root --sysvipc --link2symlink --kill-on-exit --rootfs=/data/data/com.termux/files/home/ubuntu/root /usr/bin/env -i LANG=C.UTF-8 LANGUAGE=C.UTF-8 TERM=xterm-256color /usr/sbin/addgroup --system --gid 50213 all_a213
+
+# 登录：
+-0 root用户登陆
+-w 登陆的路径
+--sysvipc 系统五信号量
+-l 兼容性创建硬链接
+--kill-on-exit 退出时杀死容器进程
+-v -1 关闭log
+unset LD_PRELOAD && env -i LANG=C.UTF-8 LANGUAGE=C.UTF-8 TERM=xterm-256color \
+/data/data/com.termux/files/usr/bin/proot -m /sys -m /proc -m /dev \
+-m /data/data/com.termux/files/home/ubuntu/shm:/dev/shm \
+-m /data/data/com.termux/files/home/ubuntu/run:/run \
+-m /data/data/com.termux/files/home/ubuntu/tmp:/tmp \
+ -r /data/data/com.termux/files/home/ubuntu/root \
+ -0 -w /root --sysvipc -l --kill-on-exit -v -1 \
+ /bin/su -l root
+
+#首次登陆运行:
+apt update
+apt --no-install-recommends -y install apt-utils
+apt --no-install-recommends -y install whiptail
+apt --no-install-recommends --auto-remove --purge -y full-upgrade
+apt --no-install-recommends -y install language-pack-zh-hans
+export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8
+echo "export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8" >> "$HOME/.profile"
+
+# 安装图形化界面
+apt --no-install-recommends -y install xfce4-session xfce4-panel xfce4-settings thunar dbus-x11 xfwm4 xfce4-terminal xfdesktop4 firefox fonts-wqy-zenhei pulseaudio at-spi2-core elementary-xfce-icon-theme pm-utils libavcodec58 libpci3
+#显卡驱动
+#Vendor neutral GL/OpenGL:
+#libopengl0 libglvnd0 libgl1 libglx0 libegl1 libgles1 libgles2
+#mesa GL/OpenGL:
+#libglapi-mesa libgl1-mesa-dri libglx-mesa0 libgl1-mesa-glx libegl-mesa0 libegl1-mesa libgles2-mesa libglu1-mesa libglw1-mesa
+#mesa other:
+#mesa-utils mesa-utils-extra mesa-va-drivers mesa-vdpau-drivers
+#vulkan:
+#libvulkan1 mesa-vulkan-drivers
+#other:
+#pm-utils xserver-xorg-core xserver-common libxcb-glx0
+apt --no-install-recommends -y install libopengl0 libglvnd0 libgl1 libglx0 libegl1 libgles1 libgles2 libglapi-mesa libgl1-mesa-dri libglx-mesa0 libgl1-mesa-glx libegl-mesa0 libegl1-mesa libgles2-mesa libglu1-mesa libglw1-mesa mesa-utils mesa-utils-extra mesa-va-drivers mesa-vdpau-drivers libvulkan1 mesa-vulkan-drivers pm-utils xserver-xorg-core xserver-common libxcb-glx0
+
+export DISPLAY=127.0.0.1:0 PULSE_SERVER=tcp:127.0.0.1:4713 MOZ_FAKE_NO_SANDBOX=1
+echo "export DISPLAY=127.0.0.1:0 PULSE_SERVER=tcp:127.0.0.1:4713 MOZ_FAKE_NO_SANDBOX=1" >> "$HOME/.profile"
+# 启动图形化界面
+xfce4-session
+
+# qt 使用Xephyr或者VNC开启
+# Xephyr
+apt --no-install-recommends -y install xserver-xephyr
+Xephyr -screen 2560x1600x16 :1
+DISPLAY=:1 xfce4-session
+
+# 安装VNC
+# 退出ubuntu到termux
+apt --no-install-recommends -y install x11-repo
+apt --no-install-recommends -y install tigervnc
+vncserver :2 -auth /data/data/com.termux/files/home/ubuntu/root/root/.Xauthority \
+-geometry 2560x1600 -depth 16  \
+-noxstartup -listen TCP
+# 登陆系统运行
+DISPLAY=:2 xfce4-session
+# VNC客户端画质设为中
+# 退出
+vncserver -kill :2
