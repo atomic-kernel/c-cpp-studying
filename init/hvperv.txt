@@ -9,10 +9,16 @@
 
 $vm = "win"
 
+Set-VM -LowMemoryMappedIoSpace 3Gb -VMName $vm
+Set-VM -HighMemoryMappedIoSpace 32Gb -VMName $vm
 Set-VM -GuestControlledCacheTypes $true -VMName $vm
-Set-VM -LowMemoryMappedIoSpace 1Gb -VMName $vm
-Set-VM -HighMemoryMappedIoSpace 8Gb -VMName $vm
 Add-VMGpuPartitionAdapter -VMName $vm
+Set-VMGpuPartitionAdapter -VMName $vm -MinPartitionVRAM ([math]::round($(1000000000 / $devider))) -MaxPartitionVRAM ([math]::round($(1000000000 / $devider))) -OptimalPartitionVRAM ([math]::round($(1000000000 / $devider)))
+Set-VMGPUPartitionAdapter -VMName $vm -MinPartitionEncode ([math]::round($(18446744073709551615 / $devider))) -MaxPartitionEncode ([math]::round($(18446744073709551615 / $devider))) -OptimalPartitionEncode ([math]::round($(18446744073709551615 / $devider)))
+Set-VMGpuPartitionAdapter -VMName $vm -MinPartitionDecode ([math]::round($(1000000000 / $devider))) -MaxPartitionDecode ([math]::round($(1000000000 / $devider))) -OptimalPartitionDecode ([math]::round($(1000000000 / $devider)))
+Set-VMGpuPartitionAdapter -VMName $vm -MinPartitionCompute ([math]::round($(1000000000 / $devider))) -MaxPartitionCompute ([math]::round($(1000000000 / $devider))) -OptimalPartitionCompute ([math]::round($(1000000000 / $devider)))
+
+}
 
 # win11
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
