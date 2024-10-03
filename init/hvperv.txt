@@ -8,6 +8,7 @@
 关闭来宾
 
 $vm = "win"
+[float]$devider = [math]::round($(100 / 50),2)
 
 Set-VM -LowMemoryMappedIoSpace 3Gb -VMName $vm
 Set-VM -HighMemoryMappedIoSpace 32Gb -VMName $vm
@@ -17,8 +18,6 @@ Set-VMGpuPartitionAdapter -VMName $vm -MinPartitionVRAM ([math]::round($(1000000
 Set-VMGPUPartitionAdapter -VMName $vm -MinPartitionEncode ([math]::round($(18446744073709551615 / $devider))) -MaxPartitionEncode ([math]::round($(18446744073709551615 / $devider))) -OptimalPartitionEncode ([math]::round($(18446744073709551615 / $devider)))
 Set-VMGpuPartitionAdapter -VMName $vm -MinPartitionDecode ([math]::round($(1000000000 / $devider))) -MaxPartitionDecode ([math]::round($(1000000000 / $devider))) -OptimalPartitionDecode ([math]::round($(1000000000 / $devider)))
 Set-VMGpuPartitionAdapter -VMName $vm -MinPartitionCompute ([math]::round($(1000000000 / $devider))) -MaxPartitionCompute ([math]::round($(1000000000 / $devider))) -OptimalPartitionCompute ([math]::round($(1000000000 / $devider)))
-
-}
 
 # win11
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
