@@ -9,12 +9,14 @@
 
 $vm = "win"
 
+Set-VM -GuestControlledCacheTypes $true -VMName $vm
+Set-VM -LowMemoryMappedIoSpace 1Gb -VMName $vm
+Set-VM -HighMemoryMappedIoSpace 8Gb -VMName $vm
+Add-VMGpuPartitionAdapter -VMName $vm
+
 # win11
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 cd xxx
 .\Update-VMGpuPartitionDriver.ps1 -VMName $vm -GPUName "AUTO"
-
-Set-VM -VMName $vm -GuestControlledCacheTypes $true -LowMemoryMappedIoSpace 1Gb -HighMemoryMappedIoSpace 32Gb
-Add-VMGpuPartitionAdapter -VMName $vm
