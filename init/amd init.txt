@@ -63,6 +63,31 @@ bcdedit /set disabledynamictick yes
 禁用测通道缓解
 关闭快速启动
 禁用MPO
-禁用DEP: bcdedit.exe /set nx AlwaysOff
+
+禁用DEP: 
+powershell: bcdedit.exe /set nx AlwaysOff
+cmd: bcdedit.exe /set {current} nx AlwaysOff
+
 禁用内存压缩
 禁用驱动页交换：DisablePagingExecutive
+
+# VBS
+1. 组策略：gpedit.msc 计算机配置 > 管理模板 > 系统 > DeviceGuard -> 打开基于虚拟化的安全（已禁用）
+2. 删除注册表：
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard\EnableVirtualizationBasedSecurity
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard\RequirePlatformSecurityFeatures
+3. 修改注册表的值，以下两项的值为0，如果没有就新建DWORD
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa\LsaCfgFlags
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard\LsaCfgFlags
+4.cmd
+mountvol X: /s
+copy %WINDIR%\System32\SecConfig.efi X:\EFI\Microsoft\Boot\SecConfig.efi /Y
+bcdedit /create {0cb3b571-2f2e-4343-a879-d86a476d7215} /d "DebugTool" /application osloader
+bcdedit /set {0cb3b571-2f2e-4343-a879-d86a476d7215} path "\EFI\Microsoft\Boot\SecConfig.efi"
+bcdedit /set {bootmgr} bootsequence {0cb3b571-2f2e-4343-a879-d86a476d7215}
+bcdedit /set {0cb3b571-2f2e-4343-a879-d86a476d7215} loadoptions DISABLE-LSA-ISO,DISABLE-VBS
+bcdedit /set vsmlaunchtype off
+bcdedit /set {0cb3b571-2f2e-4343-a879-d86a476d7215} device partition=X:
+mountvol X: /d
