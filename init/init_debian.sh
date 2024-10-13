@@ -1,6 +1,6 @@
 apt update
 
-clang_version="18"
+clang_version="19"
 gcc_version="14"
 
 # 常用操作
