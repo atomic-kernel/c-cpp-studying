@@ -2,7 +2,7 @@ wsl --install --no-distribution -n
 wsl --update
 wsl --version
 wsl --set-default-version 2
-wsl --import Ubuntu-24.10 f:\wsl\ubuntu_24_04 E:\xiazai\ubuntu-base-24.10-base-amd64.tar.gz --version 2
+wsl --import Ubuntu-24.10 f:\wsl\ubuntu_24_10 E:\xiazai\ubuntu-base-24.10-base-amd64.tar.gz --version 2
 # wsl -d Ubuntu-24.10 -u root --cd /root -e env -i TERM=xterm-256color /bin/su -l root
 # wsl -d Ubuntu-24.10 -u root --cd /root -e /bin/bash --login
 wsl -d Ubuntu-24.10 -u root --cd /root -e /bin/login -p -f root
