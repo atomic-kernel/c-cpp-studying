@@ -73,8 +73,8 @@ sparseVhd=true
 
 
 # 清理磁盘空间
-1. wsl --manage Ubuntu-24.10 --set-sparse true
-2. wsl --shutdown
+1. wsl --shutdown
+2. wsl --manage Ubuntu-24.10 --set-sparse true
 3. 以安全模式启动
 4. apt --no-install-recommends -y install zerofree
 5. mount -o remount,ro /dev/sdb
