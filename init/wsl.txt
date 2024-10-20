@@ -73,9 +73,23 @@ sparseVhd=true
 
 
 # 清理磁盘空间
+# 方法一，试了没什么效果
 1. wsl --shutdown
 2. wsl --manage Ubuntu-24.10 --set-sparse true
 3. 以安全模式启动
 4. apt --no-install-recommends -y install zerofree
 5. mount -o remount,ro /dev/sdb
 6. zerofree -v -f 0 /dev/sdb
+
+# 方法二：
+1. wsl --shutdown
+2. 以安全模式启动
+3. apt --no-install-recommends -y install zerofree
+4. mount -o remount,ro /dev/sdb
+5. zerofree -v -f 0 /dev/sdb
+6. wsl --shutdown
+7. wsl --manage Ubuntu-24.10 --set-sparse false
+8. diskpart
+select vdisk file=F:\wsl\ubuntu_24_10\ext4.vhdx
+compact vdisk
+exit
