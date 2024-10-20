@@ -25,8 +25,15 @@ apt --no-install-recommends --auto-remove --purge -y full-upgrade
 apt --no-install-recommends -y install language-pack-zh-hans systemd-sysv
 export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8
 echo "export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8" >> "$HOME/.profile"
-echo '[boot]' > /etc/wsl.conf
-echo 'systemd=true' >> /etc/wsl.conf
+cat > /etc/wsl.conf << EOF
+[boot]
+systemd=true
+initTimeout=60000
+
+[interop]
+enabled = false
+appendWindowsPath = false
+EOF
 exit
 
 wsl --shutdown
