@@ -69,3 +69,11 @@ autoProxy=true
 # 内存回收
 #autoMemoryReclaim=false
 sparseVhd=true
+
+
+
+# 清理磁盘空间
+1. 以安全模式启动
+2. apt --no-install-recommends -y install zerofree
+3. mount -o remount,ro /dev/sdb
+4. zerofree -v -f 0 /dev/sdb
