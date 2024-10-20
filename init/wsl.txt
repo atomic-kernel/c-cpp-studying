@@ -22,7 +22,7 @@ apt update
 apt --no-install-recommends -y install apt-utils
 apt --no-install-recommends -y install whiptail
 apt --no-install-recommends --auto-remove --purge -y full-upgrade
-apt --no-install-recommends -y install language-pack-zh-hans systemd-sysv
+apt --no-install-recommends -y install language-pack-zh-hans systemd-sysv kmod
 export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8
 echo "export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8" >> "$HOME/.profile"
 cat > /etc/wsl.conf << EOF
