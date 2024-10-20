@@ -45,13 +45,27 @@ wsl -l --all -v
 wsl --shutdown
 wsl --unregister Ubuntu-23.10
 wsl -d Ubuntu-23.10 hostname -I
+wsl --system
 
 # 配置文件 C:\Users\xxx\.wslconfig
 [wsl2]
+# 内存回收
 #pageReporting=false
-processors=20
+processors=12
 swap=0
-memory=12GB
+memory=8GB
+guiApplications=true
 #kernel=F:\\wsl\\files\\bzImage
-kernelCommandLine='nospec_store_bypass_disable spec_store_bypass_disable=off nospectre_v1 nospectre_v2 spectre_v2=off mitigations=off spectre_v2_user=off mds=off nopti l1tf=off audit=0 ima=off evm=fix selinux=0'
+kernelCommandLine=nospec_store_bypass_disable spec_store_bypass_disable=off nospectre_v1 nospectre_v2 spectre_v2=off mitigations=off spectre_v2_user=off mds=off nopti l1tf=off audit=0 ima=off evm=fix selinux=0
 #debugConsole=true
+#safeMode=true
+
+networkingMode=NAT
+firewall=false
+autoProxy=true
+#defaultVhdSize=1099511627776
+
+[experimental]
+# 内存回收
+#autoMemoryReclaim=false
+sparseVhd=true
