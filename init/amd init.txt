@@ -50,7 +50,7 @@ disable memory error injecion = true
 dram ecc enable
 mbist enable
 dma protection
-dmar protection
+dmar support = disbale
 
 # Windows 设置：
 # 1. HPET
