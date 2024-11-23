@@ -39,6 +39,10 @@ exit
 wsl --shutdown
 wsl -d Ubuntu-24.10 -u root --cd /root -e /bin/login -p -f root
 
+# 24.10 规避bcompare打不开，开机后运行：
+rm -r /tmp/.X11-unix
+ln -s /mnt/wslg/.X11-unix /tmp/.X11-unix
+
 
 # 其它：
 wsl -l --all -v
