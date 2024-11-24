@@ -40,8 +40,7 @@ wsl --shutdown
 wsl -d Ubuntu-24.10 -u root --cd /root -e /bin/login -p -f root
 
 # 24.10 规避x11应用(bcompare, vscode等)打不开：
-/usr/lib/systemd/system/systemd-tmpfiles-setup.service:
-!grep -q '/tmp/\.X11-unix' /usr/lib/systemd/system/systemd-tmpfiles-setup.service && sed -i 's#ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev#ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev\nExecStartPost=/bin/rm -r /tmp/.X11-unix\nExecStartPost=/bin/ln -s /mnt/wslg/.X11-unix /tmp/.X11-unix#g' /usr/lib/systemd/system/systemd-tmpfiles-setup.service
+! grep -q '/tmp/\.X11-unix' /usr/lib/systemd/system/systemd-tmpfiles-setup.service && sed -i 's#ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev#ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev\nExecStartPost=/bin/rm -r /tmp/.X11-unix\nExecStartPost=/bin/ln -s /mnt/wslg/.X11-unix /tmp/.X11-unix#g' /usr/lib/systemd/system/systemd-tmpfiles-setup.service
 
 
 # 其它：
