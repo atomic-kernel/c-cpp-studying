@@ -22,6 +22,9 @@ apt --no-install-recommends -y install gcc-${gcc_version}-arm-linux-gnueabihf li
 # 内核编译
 apt --no-install-recommends -y install llvm-${clang_version} make bc flex bison python3-minimal libelf-dev libssl-dev libncurses-dev dwarves
 
+# vscode
+DONT_PROMPT_WSL_INSTALL=1 code --no-sandbox --user-data-dir /usr/local/vscode
+
 
 cat >> /usr/share/vim/vim91/defaults.vim <<EOF
 
