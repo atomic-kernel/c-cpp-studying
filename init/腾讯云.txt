@@ -1,0 +1,11 @@
+1. 重装系统，登陆凭证选择重装后设置
+2. 登录webshell:
+sudo passwd
+sudo vim /etc/ssh/sshd_config
+sudo systemctl restart ssh.service
+3. 登录xshell链接
+userdel -f -r lighthouse
+4. 复制脚本，删除防火墙
+5. 配置ssh仅key登陆：
+/etc/ssh/sshd_config
+/etc/ssh/sshd_config.d/50-cloud-init.conf
