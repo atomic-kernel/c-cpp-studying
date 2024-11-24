@@ -2,4 +2,4 @@
 
 source /bin/clang++-option
 
-clang++-18 -Xclang -pic-level -Xclang 0 -fno-addrsig -fuse-ld=lld-18 -Wno-unused-command-line-argument "${args[@]}" "$@"
+clang++-19 -Xclang -pic-level -Xclang 0 -fno-addrsig -fuse-ld=lld-18 -Wno-unused-command-line-argument "${args[@]}" "$@"
