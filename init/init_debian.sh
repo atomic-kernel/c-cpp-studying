@@ -4,7 +4,7 @@ clang_version="19"
 gcc_version="14"
 
 # 常用操作
-apt --no-install-recommends -y install git git-lfs file openssh-client wget curl ca-certificates vim tar gzip xz-utils bzip2 lzma rpm2cpio cpio apt-file dpkg-dev iputils-ping bind9-dnsutils make gnome-text-editor diffutils patch gdb gdb-multiarch
+apt --no-install-recommends -y install git git-lfs file openssh-client wget curl ca-certificates vim tar gzip xz-utils bzip2 lzma rpm2cpio cpio apt-file dpkg-dev iputils-ping bind9-dnsutils make gnome-text-editor diffutils patch gdb gdb-multiarch nano xxd bsdextrautils
 apt-file update
 
 # bcompare
