@@ -37,6 +37,7 @@ EOF
 
 # 24.10 规避x11应用(bcompare, vscode等)打不开：
 ! grep -q '/tmp/\.X11-unix' /usr/lib/systemd/system/systemd-tmpfiles-setup.service && sed -i 's#ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev#ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev\nExecStartPost=/bin/rm -r /tmp/.X11-unix\nExecStartPost=/bin/ln -s /mnt/wslg/.X11-unix /tmp/.X11-unix#g' /usr/lib/systemd/system/systemd-tmpfiles-setup.service
+! grep -q '/mnt/wslg/runtime-dir' '/usr/lib/systemd/system/user-runtime-dir@.service' && sed -i 's#ExecStop=/usr/lib/systemd/systemd-user-runtime-dir stop %i#ExecStop=/usr/lib/systemd/systemd-user-runtime-dir stop %i\nExecStartPost=/bin/bash -c "/bin/ln -s /mnt/wslg/runtime-dir/* /run/user/%i/"#g' '/usr/lib/systemd/system/user-runtime-dir@.service'
 
 exit
 wsl --shutdown
