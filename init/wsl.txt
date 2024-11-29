@@ -59,11 +59,11 @@ swap=0
 memory=8GB
 guiApplications=true
 #kernel=F:\\wsl\\files\\bzImage
-kernelCommandLine=nospec_store_bypass_disable spec_store_bypass_disable=off nospectre_v1 nospectre_v2 spectre_v2=off mitigations=off spectre_v2_user=off mds=off nopti l1tf=off audit=0 ima=off evm=fix selinux=0
+kernelCommandLine=mitigations=off tsx=on selinux=0 audit=0 ima_appraise=off evm=fix nowatchdog nosoftlockup no_uaccess_flush kvm-intel.vmentry_l1d_flush=never nospec_store_bypass_disable spec_store_bypass_disable=off spec_rstack_overflow=off nospectre_v1 nospectre_v2 spectre_v2=off spectre_bhi=off spectre_v2_user=off mds=off nopti l1tf=off tsx_async_abort=off
 #debugConsole=true
 #safeMode=true
 
-networkingMode=NAT
+#networkingMode=NAT
 firewall=false
 autoProxy=true
 #defaultVhdSize=1099511627776
@@ -71,7 +71,7 @@ autoProxy=true
 [experimental]
 # 内存回收
 #autoMemoryReclaim=false
-sparseVhd=true
+#sparseVhd=true
 
 
 
