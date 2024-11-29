@@ -93,6 +93,6 @@ args=(
 
 
 # other
--std=gnu++23 -D_GNU_SOURCE -g0 -Ofast -Wall -Wextra -Wshadow
+-std=gnu++23 -D_GNU_SOURCE -g0 -O3 -Wall -Wextra -Wshadow
 # -Wstrict-prototypes // C only
 )
