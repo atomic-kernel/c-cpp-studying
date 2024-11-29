@@ -63,7 +63,8 @@ kernelCommandLine=mitigations=off tsx=on selinux=0 audit=0 ima_appraise=off evm=
 #debugConsole=true
 #safeMode=true
 
-#networkingMode=NAT
+#networkingMode=mirrored
+networkingMode=NAT
 firewall=false
 autoProxy=true
 #defaultVhdSize=1099511627776
