@@ -23,11 +23,14 @@ make LLVM=1 LLVM_IAS=1 KBUILD_BUILD_TIMESTAMP="2023-10-1" -j$((2*$(nproc))) bzIm
 make ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=aarch64-clang-me-build LD=ld.lld-18 AR=llvm-ar-18 NM=llvm-nm-18 STRIP=llvm-strip-18 OBJCOPY=llvm-objcopy-18 OBJDUMP=llvm-objdump-18 READELF=llvm-readelf-18 HOSTCC=clang-18 HOSTCXX=clang++-18 HOSTAR=llvm-ar-18 HOSTLD=ld.lld-18 -j$((2*$(nproc))) defconfig
 make ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=aarch64-clang-me-build LD=ld.lld-18 AR=llvm-ar-18 NM=llvm-nm-18 STRIP=llvm-strip-18 OBJCOPY=llvm-objcopy-18 OBJDUMP=llvm-objdump-18 READELF=llvm-readelf-18 HOSTCC=clang-18 HOSTCXX=clang++-18 HOSTAR=llvm-ar-18 HOSTLD=ld.lld-18 -j$((2*$(nproc))) menuconfig
 make ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=aarch64-clang-me-build LD=ld.lld-18 AR=llvm-ar-18 NM=llvm-nm-18 STRIP=llvm-strip-18 OBJCOPY=llvm-objcopy-18 OBJDUMP=llvm-objdump-18 READELF=llvm-readelf-18 HOSTCC=clang-18 HOSTCXX=clang++-18 HOSTAR=llvm-ar-18 HOSTLD=ld.lld-18 -j$((2*$(nproc))) zImage
-
+#arm org gcc
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- multi_v7_defconfig
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j$((2*$(nproc))) zImage
 
 find . | cpio -o -H newc > ../rootfs.cpio
 
 apt --no-install-recommends install qemu-system-arm ipxe-qemu
 qemu-system-aarch64 -machine virt -cpu cortex-a76 -nographic -smp 1 -m 4g -kernel Image -initrd rootfs.cpio -append 'nokslr rdinit=/bin/login -p -f root'
+qemu-system-arm -machine virt -cpu cortex-a15 -nographic -smp 16 -m 4g -kernel arch/arm/boot/zImage -initrd rootfs.cpio -append 'nokslr rdinit=/bin/login -p -f root'
 apt --no-install-recommends install qemu-system-x86
 qemu-system-x86_64 -accel kvm -cpu host -nographic -smp 1 -m 2g -kernel bzImage -drive file=disk.ext4,format=raw -append 'console=ttyS0 root=/dev/sda ro init=/a.out'
