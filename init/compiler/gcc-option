@@ -58,8 +58,8 @@ args=(
 -fipa-pta
 -fdevirtualize-at-ltrans
 -fmerge-all-constants
--funroll-loops
--funroll-all-loops
+#-funroll-loops
+#-funroll-all-loops
 
 
 
