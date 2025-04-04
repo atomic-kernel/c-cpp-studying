@@ -12,15 +12,37 @@ apt-file update
 apt --no-install-recommends -y install fonts-noto-cjk-extra fonts-noto-cjk shared-mime-info
 
 # c/c++
-apt --no-install-recommends -y install gcc-${gcc_version} g++-${gcc_version} libc6-dev clang-${clang_version} lld-${clang_version}
-# c/c++: i386
+## host
+apt --no-install-recommends -y install gcc-${gcc_version} g++-${gcc_version} libc6-dev clang-${clang_version} lld-${clang_version} clang-format-${clang_version} llvm-${clang_version}
+## i386
 apt --no-install-recommends -y install libc6-dev-i386 lib32gcc-${gcc_version}-dev
-# c/c++: arm64
+## arm64
 apt --no-install-recommends -y install gcc-${gcc_version}-aarch64-linux-gnu libc6-dev-arm64-cross g++-${gcc_version}-aarch64-linux-gnu
-# c/c++: armhf
+## armhf
 apt --no-install-recommends -y install gcc-${gcc_version}-arm-linux-gnueabihf libc6-dev-armhf-cross g++-${gcc_version}-arm-linux-gnueabihf
+## arm
+apt --no-install-recommends -y install gcc-${gcc_version}-arm-linux-gnueabi libc6-dev-armel-cross g++-${gcc_version}-arm-linux-gnueabi
+## 软链
+softlink()
+{
+  ln -s "$1" "$(dirname "$(type -P "$1")")"/"$2"
+}
+softlink clang-${clang_version} clang
+softlink clang++-${clang_version} clang++
+softlink clang-format-${clang_version} clang-format
+softlink lld-${clang_version} lld
+softlink ld.lld-${clang_version} ld.lld
+softlink llvm-ar-${clang_version} llvm-ar
+softlink llvm-nm-${clang_version} llvm-nm
+softlink llvm-objcopy-${clang_version} llvm-objcopy
+softlink llvm-objdump-${clang_version} llvm-objdump
+softlink llvm-readelf-${clang_version} llvm-readelf
+softlink llvm-strip-${clang_version} llvm-strip
+softlink gcc-${gcc_version} gcc
+softlink g++-${gcc_version} g++
+
 # 内核编译
-apt --no-install-recommends -y install llvm-${clang_version} make bc flex bison python3-minimal libelf-dev libssl-dev libncurses-dev dwarves
+apt --no-install-recommends -y install make bc flex bison python3-minimal libelf-dev libssl-dev libncurses-dev dwarves
 
 # vscode
 DONT_PROMPT_WSL_INSTALL=1 code --no-sandbox --user-data-dir /usr/local/vscode
