@@ -25,7 +25,11 @@ apt --no-install-recommends -y install gcc-${gcc_version}-arm-linux-gnueabi libc
 ## 软链
 softlink()
 {
-  ln -s "$1" "$(dirname "$(type -P "$1")")"/"$2"
+        if [ -z "$(type -P "$1")" ]; then
+                echo error "$1" not exist
+        else
+                ln -s "$1" "$(dirname "$(type -P "$1")")"/"$2"
+        fi
 }
 softlink clang-${clang_version} clang
 softlink clang++-${clang_version} clang++
@@ -38,8 +42,24 @@ softlink llvm-objcopy-${clang_version} llvm-objcopy
 softlink llvm-objdump-${clang_version} llvm-objdump
 softlink llvm-readelf-${clang_version} llvm-readelf
 softlink llvm-strip-${clang_version} llvm-strip
-softlink gcc-${gcc_version} gcc
-softlink g++-${gcc_version} g++
+link_gcc_with_prefix()
+{
+        softlink "$1"gcc-${gcc_version} "$1"gcc
+        softlink "$1"g++-${gcc_version} "$1"g++
+	softlink "$1"gcc-ar-${gcc_version} "$1"gcc-ar
+	softlink "$1"gcc-nm-${gcc_version} "$1"gcc-nm
+        softlink "$1"gcc-ranlib-${gcc_version} "$1"gcc-ranlib
+        softlink "$1"gcov-${gcc_version} "$1"gcov
+        softlink "$1"gcov-dump-${gcc_version} "$1"gcov-dump
+        softlink "$1"gcov-tool-${gcc_version} "$1"gcov-tool
+        softlink "$1"lto-dump-${gcc_version} "$1"lto-dump
+        softlink "$1"cpp-${gcc_version} "$1"cpp
+}
+link_gcc_with_prefix aarch64-linux-gnu-
+link_gcc_with_prefix arm-linux-gnueabi-
+link_gcc_with_prefix arm-linux-gnueabihf-
+link_gcc_with_prefix x86_64-linux-gnu-
+link_gcc_with_prefix ""
 
 # 内核编译
 apt --no-install-recommends -y install make bc flex bison python3-minimal libelf-dev libssl-dev libncurses-dev dwarves
