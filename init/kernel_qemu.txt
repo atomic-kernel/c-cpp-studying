@@ -1,7 +1,11 @@
 # some config:
-CONFIG_DEBUG_KERNEL && CONFIG_DEBUG_INFO
-CONFIG_RANDOMIZE_BASE
-CONFIG_DEBUG_INFO_BTF
+CONFIG_DEBUG_KERNEL=y
+CONFIG_DEBUG_INFO=y
+# CONFIG_RANDOMIZE_BASE is not set
+# CONFIG_DEBUG_INFO_BTF is not set
+# CONFIG_VIRTUALIZATION is not set
+# CONFIG_SOUND is not set
+VIDEO
 
 # depends LLVM build with llvm version:
 apt --no-install-recommends -y install clang-17 lld-17 llvm-17 make bc flex bison python3-minimal libelf-dev libssl-dev libncurses-dev dwarves
@@ -19,10 +23,6 @@ make LLVM=1 LLVM_IAS=1 KBUILD_BUILD_TIMESTAMP="2023-10-1" x86_64_defconfig
 make LLVM=1 LLVM_IAS=1 KBUILD_BUILD_TIMESTAMP="2023-10-1" menuconfig
 make LLVM=1 LLVM_IAS=1 KBUILD_BUILD_TIMESTAMP="2023-10-1" -j$((2*$(nproc))) bzImage
 
-# aarch64 LLVM build with llvm version:
-make ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=aarch64-clang-me-build LD=ld.lld-18 AR=llvm-ar-18 NM=llvm-nm-18 STRIP=llvm-strip-18 OBJCOPY=llvm-objcopy-18 OBJDUMP=llvm-objdump-18 READELF=llvm-readelf-18 HOSTCC=clang-18 HOSTCXX=clang++-18 HOSTAR=llvm-ar-18 HOSTLD=ld.lld-18 -j$((2*$(nproc))) defconfig
-make ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=aarch64-clang-me-build LD=ld.lld-18 AR=llvm-ar-18 NM=llvm-nm-18 STRIP=llvm-strip-18 OBJCOPY=llvm-objcopy-18 OBJDUMP=llvm-objdump-18 READELF=llvm-readelf-18 HOSTCC=clang-18 HOSTCXX=clang++-18 HOSTAR=llvm-ar-18 HOSTLD=ld.lld-18 -j$((2*$(nproc))) menuconfig
-make ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=aarch64-clang-me-build LD=ld.lld-18 AR=llvm-ar-18 NM=llvm-nm-18 STRIP=llvm-strip-18 OBJCOPY=llvm-objcopy-18 OBJDUMP=llvm-objdump-18 READELF=llvm-readelf-18 HOSTCC=clang-18 HOSTCXX=clang++-18 HOSTAR=llvm-ar-18 HOSTLD=ld.lld-18 -j$((2*$(nproc))) zImage
 #arm org gcc
 make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- multi_v7_defconfig
 make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j$((2*$(nproc))) zImage
@@ -34,3 +34,66 @@ qemu-system-aarch64 -machine virt -cpu cortex-a76 -nographic -smp 1 -m 4g -kerne
 qemu-system-arm -machine virt -cpu cortex-a15 -nographic -smp 16 -m 4g -kernel arch/arm/boot/zImage -initrd rootfs.cpio -append 'nokslr rdinit=/bin/login -p -f root'
 apt --no-install-recommends install qemu-system-x86
 qemu-system-x86_64 -accel kvm -cpu host -nographic -smp 1 -m 2g -kernel bzImage -drive file=disk.ext4,format=raw -append 'console=ttyS0 root=/dev/sda ro init=/a.out'
+
+# aarch64
+make ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- -j$((2*$(nproc))) defconfig
+make ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- -j$((2*$(nproc))) menuconfig
+make ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- -j$((2*$(nproc))) Image
+
+dd if=/dev/zero of=rootfs.ext4 bs=10M count=50
+mkfs.ext4 rootfs.ext4
+resize2fs -s 1G rootfs.ext4
+e2fsck -f rootfs.ext4
+mkdir rootfs
+mount rootfs.ext4 rootfs
+tar -zxpf /mnt/e/xiazai/ubuntu-base-25.04-beta-base-arm64.tar.gz -C rootfs/
+sync
+umount
+
+mkdir -p /etc/qemu
+echo 'allow virtbr0' > /etc/qemu/bridge.conf
+
+sysctl -w net.ipv4.ip_forward=1
+brctl addbr br0
+ip addr add 192.168.101.1/24 brd + dev br0
+ip link set br0 up
+# 清空防火墙
+# iptables -F
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+#brctl addif br0 eth0
+#iptables -I FORWARD -m physdev --physdev-is-bridged -j ACCEPT
+ip tuntap add user 0 mode tap
+ip link set dev tap0 promisc off up
+brctl addif br0 tap0
+
+qemu-system-aarch64 \
+ -M virt \
+ -cpu max \
+ -smp 1 \
+ -m 4g \
+ -nographic \
+ -kernel Image \
+ -append 'root=/dev/vda rw init=/bin/bash' \
+ -drive if=none,file=rootfs.ext4,format=raw,id=vda \
+ -device virtio-blk-device,drive=vda \
+ -net nic,macaddr="52:54:01:01:01:01",model=virtio -net tap,ifname=tap0,script=no,downscript=no,vhost=on
+# -net nic,macaddr="52:54:01:01:01:01",model=virtio -net bridge,br=br0,ifname=br0,script=no,downscript=no,vhost=on
+# -netdev type=tap,id=net0 -device virtio-net-device,netdev=net0
+# -net nic,macaddr="52:54:01:01:01:01",model=virtio \
+# -net tap,ifname=tap0,script=no,downscript=no,vhost=on
+# -net nic,model=virto \
+# -net bridge,br=br0 \
+# -device virtio-net-device,netdev=net0
+# -netdev type=tap,id=net0 \
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t tmpfs -o size=500M tmpfs /tmp
+
+export PATH=/usr/local/bin:/usr/bin:/usr/sbin
+#dpkg -i *.deb
+ip addr add 127.0.0.1/8 dev lo
+ip link set lo up
+ip addr add 192.168.101.2/24 brd + dev eth0
+ip link set eth0 up
+ip route add default via 192.168.101.1 dev eth0 proto kernel
