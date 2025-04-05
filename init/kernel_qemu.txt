@@ -69,7 +69,7 @@ brctl addif br0 tap0
 qemu-system-aarch64 \
  -M virt \
  -cpu max \
- -smp 1 \
+ -smp "$(nproc)" \
  -m 4g \
  -nographic \
  -kernel Image \
@@ -77,17 +77,12 @@ qemu-system-aarch64 \
  -drive if=none,file=rootfs.ext4,format=raw,id=vda \
  -device virtio-blk-device,drive=vda \
  -net nic,macaddr="52:54:01:01:01:01",model=virtio -net tap,ifname=tap0,script=no,downscript=no,vhost=on
+# -net type=tap,id=net0 -device virtio-net-device,netdev=net0
 # -net nic,macaddr="52:54:01:01:01:01",model=virtio -net bridge,br=br0,ifname=br0,script=no,downscript=no,vhost=on
-# -netdev type=tap,id=net0 -device virtio-net-device,netdev=net0
-# -net nic,macaddr="52:54:01:01:01:01",model=virtio \
-# -net tap,ifname=tap0,script=no,downscript=no,vhost=on
-# -net nic,model=virto \
-# -net bridge,br=br0 \
-# -device virtio-net-device,netdev=net0
-# -netdev type=tap,id=net0 \
 
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
+mount -t devpts devpts /dev/pts
 mount -t tmpfs -o size=500M tmpfs /tmp
 
 export PATH=/usr/local/bin:/usr/bin:/usr/sbin
@@ -97,3 +92,5 @@ ip link set lo up
 ip addr add 192.168.101.2/24 brd + dev eth0
 ip link set eth0 up
 ip route add default via 192.168.101.1 dev eth0 proto kernel
+
+/usr/sbin/sshd &
