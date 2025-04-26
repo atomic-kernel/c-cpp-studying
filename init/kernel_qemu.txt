@@ -54,11 +54,8 @@ mount rootfs.ext4 rootfs
 tar -zxpf /mnt/e/xiazai/ubuntu-base-25.04-beta-base-arm64.tar.gz -C rootfs/
 umount rootfs
 
-mkdir -p /etc/qemu
-echo 'allow virtbr0' > /etc/qemu/bridge.conf
 
 apt --no-install-recommends -y install bridge-utils iptables
-
 sysctl net.ipv4.ip_forward=1
 brctl addbr br0
 ip addr add 192.168.101.1/24 brd + dev br0
@@ -94,12 +91,16 @@ mount -t tmpfs -o size=500M tmpfs /tmp
 export PATH=/usr/local/bin:/usr/bin:/usr/sbin
 exec setsid -f -w -c bash
 
+ifconfig lo 127.0.0.1 netmask 255.0.0.0
+ifconfig eth0 192.168.101.2/24 netmask 255.255.255.0
+route add default gw 192.168.101.1
+
 #dpkg -i *.deb
-ip addr add 127.0.0.1/8 dev lo
-ip link set lo up
-ip addr add 192.168.101.2/24 brd + dev eth0
-ip link set eth0 up
-ip route add default via 192.168.101.1 dev eth0 proto kernel
+#ip addr add 127.0.0.1/8 dev lo
+#ip link set lo up
+#ip addr add 192.168.101.2/24 brd + dev eth0
+#ip link set eth0 up
+#ip route add default via 192.168.101.1 dev eth0 proto kernel
 
 /usr/sbin/sshd &
 
