@@ -2,4 +2,4 @@
 
 source /bin/clang-option
 
-clang-19 --target=arm-linux-gnueabihf -fno-addrsig -fuse-ld=lld-18 -Wno-unused-command-line-argument "${args[@]}" "$@"
+clang-20 --target=arm-linux-gnueabihf -fno-addrsig -fuse-ld=lld-18 -Wno-unused-command-line-argument "${args[@]}" "$@"

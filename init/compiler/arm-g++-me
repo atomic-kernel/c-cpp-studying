@@ -2,4 +2,4 @@
 
 source /bin/g++-option
 
-arm-linux-gnueabi-g++-14 "${args[@]}" "$@"
+arm-linux-gnueabi-g++-15 "${args[@]}" "$@"

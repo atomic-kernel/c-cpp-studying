@@ -2,4 +2,4 @@
 
 source /bin/g++-option
 
-aarch64-linux-gnu-g++-14 "${args[@]}" "$@"
+aarch64-linux-gnu-g++-15 "${args[@]}" "$@"

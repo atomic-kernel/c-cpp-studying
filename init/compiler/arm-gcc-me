@@ -2,4 +2,4 @@
 
 source /bin/gcc-option
 
-arm-linux-gnueabi-gcc-14 "${args[@]}" "$@"
+arm-linux-gnueabi-gcc-15 "${args[@]}" "$@"

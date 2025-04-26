@@ -2,4 +2,4 @@
 
 source /bin/gcc-option
 
-aarch64-linux-gnu-gcc-14 "${args[@]}" "$@"
+aarch64-linux-gnu-gcc-15 "${args[@]}" "$@"

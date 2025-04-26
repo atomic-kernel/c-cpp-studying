@@ -2,4 +2,4 @@
 
 source /bin/gcc-option
 
-gcc-14 "${args[@]}" "$@"
+gcc-15 "${args[@]}" "$@"
