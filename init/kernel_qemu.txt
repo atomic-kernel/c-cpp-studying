@@ -90,7 +90,7 @@ mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
 mount -t tmpfs -o size=500M tmpfs /tmp
 export PATH=/usr/local/bin:/usr/bin:/usr/sbin
-exec setsid -f -w -c bash
+setsid -c bash
 
 ifconfig lo 127.0.0.1 netmask 255.0.0.0
 ifconfig eth0 192.168.101.2/24 netmask 255.255.255.0
