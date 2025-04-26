@@ -47,12 +47,12 @@ make ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- -j$((2*$(npro
 
 dd if=/dev/zero of=rootfs.ext4 bs=10M count=50
 mkfs.ext4 rootfs.ext4
-resize2fs -s 1G rootfs.ext4
+resize2fs rootfs.ext4 -s 1G
 e2fsck -f rootfs.ext4
 mkdir rootfs
 mount rootfs.ext4 rootfs
 tar -zxpf /mnt/e/xiazai/ubuntu-base-25.04-beta-base-arm64.tar.gz -C rootfs/
-umount
+umount rootfs
 
 mkdir -p /etc/qemu
 echo 'allow virtbr0' > /etc/qemu/bridge.conf
