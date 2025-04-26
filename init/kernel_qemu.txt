@@ -35,7 +35,12 @@ qemu-system-arm -machine virt -cpu cortex-a15 -nographic -smp 16 -m 4g -kernel a
 apt --no-install-recommends install qemu-system-x86
 qemu-system-x86_64 -accel kvm -cpu host -nographic -smp 1 -m 2g -kernel bzImage -drive file=disk.ext4,format=raw -append 'console=ttyS0 root=/dev/sda ro init=/a.out'
 
-# aarch64
+# arm llvm
+make ARCH=arm LLVM=1 LLVM_IAS=1 CROSS_COMPILE=arm-linux-gnueabihf- -j$((2*$(nproc))) multi_v7_defconfig
+make ARCH=arm LLVM=1 LLVM_IAS=1 CROSS_COMPILE=arm-linux-gnueabihf- -j$((2*$(nproc))) menuconfig
+make ARCH=arm LLVM=1 LLVM_IAS=1 CROSS_COMPILE=arm-linux-gnueabihf- -j$((2*$(nproc))) zImage
+
+# aarch64 llvm
 make ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- -j$((2*$(nproc))) defconfig
 make ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- -j$((2*$(nproc))) menuconfig
 make ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- -j$((2*$(nproc))) Image
@@ -47,7 +52,6 @@ e2fsck -f rootfs.ext4
 mkdir rootfs
 mount rootfs.ext4 rootfs
 tar -zxpf /mnt/e/xiazai/ubuntu-base-25.04-beta-base-arm64.tar.gz -C rootfs/
-sync
 umount
 
 mkdir -p /etc/qemu
