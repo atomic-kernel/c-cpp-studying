@@ -2,10 +2,10 @@ wsl --install --no-distribution -n
 wsl --update
 wsl --version
 wsl --set-default-version 2
-wsl --import Ubuntu-24.10 f:\wsl\ubuntu_24_10 E:\xiazai\ubuntu-base-24.10-base-amd64.tar.gz --version 2
+wsl --import Ubuntu-25.04 f:\wsl\ubuntu_25_04 E:\xiazai\ubuntu-base-25.04-base-amd64.tar.gz --version 2
 # wsl -d Ubuntu-24.10 -u root --cd /root -e env -i TERM=xterm-256color /bin/su -l root
 # wsl -d Ubuntu-24.10 -u root --cd /root -e /bin/bash --login
-wsl -d Ubuntu-24.10 -u root --cd /root -e /bin/login -p -f root
+wsl -d Ubuntu-25.04 -u root --cd /root -e /bin/login -p -f root
 
 # 老版本sources.list
 sed -i 's@^deb http://archive.ubuntu.com/ubuntu/@deb \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
@@ -35,13 +35,13 @@ enabled = false
 appendWindowsPath = false
 EOF
 
-# 24.10 规避x11应用(bcompare, vscode等)打不开：
+# 25.04 规避x11应用(bcompare, vscode等)打不开：
 ! grep -q '/tmp/\.X11-unix' /usr/lib/systemd/system/systemd-tmpfiles-setup.service && sed -i 's#ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev#ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev\nExecStartPost=/bin/rm -r /tmp/.X11-unix\nExecStartPost=/bin/ln -s /mnt/wslg/.X11-unix /tmp/.X11-unix#g' /usr/lib/systemd/system/systemd-tmpfiles-setup.service
 ! grep -q '/mnt/wslg/runtime-dir' '/usr/lib/systemd/system/user-runtime-dir@.service' && sed -i 's#ExecStop=/usr/lib/systemd/systemd-user-runtime-dir stop %i#ExecStop=/usr/lib/systemd/systemd-user-runtime-dir stop %i\nExecStartPost=/bin/bash -c "/bin/ln -s /mnt/wslg/runtime-dir/* /run/user/%i/"#g' '/usr/lib/systemd/system/user-runtime-dir@.service'
 
 exit
 wsl --shutdown
-wsl -d Ubuntu-24.10 -u root --cd /root -e /bin/login -p -f root
+# 重新登陆
 
 # 其它：
 wsl -l --all -v
