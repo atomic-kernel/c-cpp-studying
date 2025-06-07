@@ -5,7 +5,8 @@ wsl --set-default-version 2
 wsl --import Ubuntu-25.04 f:\wsl\ubuntu_25_04 E:\xiazai\ubuntu-base-25.04-base-amd64.tar.gz --version 2
 # wsl -d Ubuntu-24.10 -u root --cd /root -e env -i TERM=xterm-256color /bin/su -l root
 # wsl -d Ubuntu-24.10 -u root --cd /root -e /bin/bash --login
-wsl -d Ubuntu-25.04 -u root --cd /root -e /bin/login -p -f root
+# wsl -d Ubuntu-25.04 -u root --cd /root -e /bin/login -p -f root
+wsl -d Ubuntu-25.04 -u root --cd /root -e /bin/setsid -c -f -w /bin/login -p -f root
 
 # 老版本sources.list
 sed -i 's@^deb http://archive.ubuntu.com/ubuntu/@deb \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
