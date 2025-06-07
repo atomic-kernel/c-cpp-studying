@@ -93,6 +93,16 @@ HISTFILESIZE=-1
 HISTTIMEFORMAT='%F %T '
 EOF
 
+
+git config --global http.proxy "http://xx:1080"
+git config --global https.proxy "http://xx:1080"
+vim ~/.ssh/config
+Host github.com
+HostName github.com
+User git
+ProxyCommand socat - PROXY:127.0.0.1:%h:%p,proxyport=1087
+
+
 cat >> ~/.inputrc << EOF
 
 "\e[5~": history-search-backward
