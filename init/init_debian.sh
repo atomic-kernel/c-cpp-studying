@@ -93,22 +93,22 @@ HISTFILESIZE=-1
 HISTTIMEFORMAT='%F %T '
 EOF
 
-
-git config --global http.proxy "http://xx:1080"
-git config --global https.proxy "http://xx:1080"
+http_proxy="127.0.0.1:1080"
+socks5_proxy="127.0.0.1:1080"
+git config --global http.proxy "http://${http_proxy}"
+git config --global https.proxy "http://${http_proxy}"
 cat > /bin/git-proxy << EOF
 #!/bin/bash
 
-nc -x xx:1080 "$1" "$2"
+nc -x ${socks5_proxy} -X 5 "$1" "$2"
 EOF
 chmod +x /bin/git-proxy
 git config --global core.gitproxy /bin/git-proxy
 
 cat >> ~/.ssh/config << EOF
 Host github.com
-	HostName github.com
 	User git
-	ProxyCommand socat - PROXY:127.0.0.1:%h:%p,proxyport=1080
+	ProxyCommand nc -x ${socks5_proxy} -X 5 %h %p
 EOF
  
 
