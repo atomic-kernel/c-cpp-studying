@@ -100,7 +100,7 @@ git config --global https.proxy "http://${http_proxy}"
 cat > /bin/git-proxy << EOF
 #!/bin/bash
 
-nc -x ${socks5_proxy} -X 5 "$1" "$2"
+nc -x ${socks5_proxy} -X 5 "\$1" "\$2"
 EOF
 chmod +x /bin/git-proxy
 git config --global core.gitproxy /bin/git-proxy
