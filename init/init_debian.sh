@@ -93,6 +93,10 @@ HISTFILESIZE=-1
 HISTTIMEFORMAT='%F %T '
 EOF
 
+git config --global core.editor "vim"
+git config --global user.name xxx
+git config --global user.email xxx
+
 http_proxy="127.0.0.1:1080"
 socks5_proxy="127.0.0.1:1080"
 git config --global http.proxy "http://${http_proxy}"
