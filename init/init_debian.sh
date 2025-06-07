@@ -96,12 +96,21 @@ EOF
 
 git config --global http.proxy "http://xx:1080"
 git config --global https.proxy "http://xx:1080"
-vim ~/.ssh/config
-Host github.com
-HostName github.com
-User git
-ProxyCommand socat - PROXY:127.0.0.1:%h:%p,proxyport=1087
+cat > /bin/git-proxy << EOF
+#!/bin/bash
 
+nc -x xx:1080 "$1" "$2"
+EOF
+chmod +x /bin/git-proxy
+git config --global core.gitproxy /bin/git-proxy
+
+cat >> ~/.ssh/config << EOF
+Host github.com
+	HostName github.com
+	User git
+	ProxyCommand socat - PROXY:127.0.0.1:%h:%p,proxyport=1080
+EOF
+ 
 
 cat >> ~/.inputrc << EOF
 
