@@ -26,10 +26,11 @@ gear down mode -> diable
 fclk -> 1/3
 uclk == memclk
 memory cortext restore（关闭后增加开机时间） -> disable
-cpu soc voltage(uclk相关) -> 1.23 - 1.25
-cpu vddio -> 不用动，和soc电压自动匹配
 DRAM VDD -> 1.43 / 1.45 (解锁)
 DRAM VDDQ == DRAM VDD
+cpu soc voltage(uclk相关) -> 1.23 - 1.25
+cpu vddio -> 不用动，和soc电压自动匹配
+vddp -> 不稳定可以设置1.05v
 
 
 # AM4 BIOS
