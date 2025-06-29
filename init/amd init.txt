@@ -7,6 +7,7 @@ x10
 -50 -50 -20 -50 -50 -50
 防掉压 level3
 
+ftpm -> disable
 核显 -> disable
 avx 512 -> disable
 spectre -> disable
