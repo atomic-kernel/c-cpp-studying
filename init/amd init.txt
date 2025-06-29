@@ -1,4 +1,27 @@
-# BIOS
+# AM5 BIOS
+## cpu
+### pbo
+motherboard
+x10
++200
+-50 -50 -20 -50 -50 -50
+防掉压 level3
+
+核显 -> disable
+avx 512 -> disable
+spectre -> disable
+pss -> disable
+global c-state -> disable
+
+## mem
+expo -> tweaked
+TSME -> off
+power down mode -> diable
+gear down mode -> diable
+fclk -> 1/3
+uclk 
+
+# AM4 BIOS
 XMP
 SAM
 
