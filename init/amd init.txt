@@ -1,11 +1,15 @@
 # AM5 BIOS
 ## cpu
 ### pbo
+asus performace enhancement -> disable
+core performace boost （睿频） -> enable/auto
+turbo gamineg mode (关闭超线程 && ccd2) -> disable
+
 motherboard
 x10
 +200
 -50 -50 -20 -50 -50 -50
-防掉压 level3
+防掉压 auto
 
 ftpm -> disable
 核显 -> disable
@@ -20,7 +24,9 @@ TSME -> off
 power down mode -> diable
 gear down mode -> diable
 fclk -> 1/3
-uclk 
+uclk == memclk
+cpu soc voltage(uclk相关) -> 1.23 - 1.25
+memory cortext restore（关闭后增加开机时间） -> disable
 
 # AM4 BIOS
 XMP
