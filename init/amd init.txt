@@ -26,6 +26,7 @@ global c-state -> disable
 ## mem
 expo -> tweaked
 TSME -> off
+smee -> disable
 power down mode -> diable
 gear down mode -> diable
 fclk -> 1/3
@@ -36,6 +37,17 @@ DRAM VDDQ == DRAM VDD
 cpu soc voltage(uclk相关) -> 1.23 - 1.25
 cpu vddio -> 不用动，和soc电压自动匹配
 vddp -> 不稳定可以设置1.05v
+### 时序小餐
+原则：
+1. twr == 4 * trtp
+2. tfaw == 4 * trrds
+3. trcwr == trcrd
+4. trc >= trcwr + tras
+
+Refresh Interval 65535
+trfc1 -> 700
+twr -> 72
+trtp -> 18
 
 
 # AM4 BIOS
