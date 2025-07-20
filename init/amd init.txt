@@ -8,22 +8,26 @@ turbo gamineg mode (关闭超线程 && ccd2) -> disable
 motherboard
 x10
 +200
-
+#### avx512 disable 防掉压 level1:
 (-8) -43 -43 -20 -50 -49 -20
 -50 -50 -20 -50 -50 -20 x
 -43 -43 -30 -50 -49 -40 √
 -43 -43 -30 -50 -49 -45 ×
 -45 -45 -35 -50 -50 -40 ×
-防掉压 level1
+#### avx512 enable 防掉压 level1 media load boostist
+-43 -43 -30 -50 -42 -40 √
+-43 -43 -30 -50 -45 -40 ×
 
 ftpm -> disable
 核显 -> disable
 avx 512 -> disable
 spectre -> disable
+cpu speclutive mode -> more
 pss -> disable
 global c-state -> disable
 
 ## mem
+ai cache boost -> disabled
 expo -> tweaked
 TSME -> off
 smee -> disable
