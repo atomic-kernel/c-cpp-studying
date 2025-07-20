@@ -41,17 +41,28 @@ DRAM VDDQ == DRAM VDD
 cpu soc voltage(uclk相关) -> 1.23 - 1.25
 cpu vddio -> 不用动，和soc电压自动匹配
 vddp -> 不稳定可以设置1.05v
-### 时序小餐
+### 时序小参
 原则：
 1. twr == 4 * trtp
 2. tfaw == 4 * trrds
 3. trcwr == trcrd
 4. trc >= trcwr + tras
 
+6200mhz + 1.43v + gear down mode + expo tweak
+34 38 38 86
+trc 124
 Refresh Interval 65535
 trfc1 -> 700
+trfc2 -> 480
+trfcsb -> 390
 twr -> 72
 trtp -> 18
+trrds (auto) -> 8
+trrdl -> 15
+tfaw (auto) -> 32
+trdwr -> 20
+twtrl -> 30
+
 
 
 # AM4 BIOS
