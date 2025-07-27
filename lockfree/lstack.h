@@ -42,7 +42,7 @@ struct lstack_head {
 _Static_assert(__atomic_always_lock_free(sizeof(struct lstack_head), (void *)(uintptr_t)_Alignof(struct lstack_head)));
 #endif
 
-// Return whether list is empty before push.
+// Return whether lstack is empty before pushing.
 static inline __attribute__((always_inline))
 bool lstack_push(struct lstack_head *const head, struct lstack_node *const node)
 {
@@ -56,7 +56,7 @@ bool lstack_push(struct lstack_head *const head, struct lstack_node *const node)
 	return !old_first;
 }
 
-// Return whether list is empty after pop.
+// Return whether lstack is empty after popping.
 static inline __attribute__((always_inline))
 struct lstack_node *lstack_pop(struct lstack_head *const head, bool *const is_empty_after_pop)
 {
@@ -75,7 +75,14 @@ struct lstack_node *lstack_pop(struct lstack_head *const head, bool *const is_em
 		 */
 		new_head.raw_first = old_head.raw_first->next;
 		new_head.raw_count = old_head.raw_count + 1;
-	} while (!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_acquire, memory_order_acquire));
+		/*
+		 * Can we omit the "acquire" barrier in the case of success?
+		 * I think it's OK, because we have already acquired "head" before.
+		 * The release barrier is to ensure that
+		 * the reading of `old_head->next` is completed
+		 * before updating head
+		 */
+	} while (!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_release, memory_order_acquire));
 
 	*is_empty_after_pop = !new_head.raw_first;
 	return old_head.raw_first;
