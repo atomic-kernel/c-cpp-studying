@@ -50,7 +50,7 @@ struct lqueue_node {
 
 struct lqueue {
 	struct tag_pnode first;
-	struct tag_pnode tail;
+	struct tag_pnode last;
 	atomic_size_t num;
 	struct lqueue_node dummy;
 	bool dummy_is_free;
@@ -61,15 +61,15 @@ void lqueue_init(struct lqueue *const q)
 {
 	memset(q, 0, sizeof(*q));
 	q->first.raw_p = &q->dummy;
-	q->tail.raw_p = &q->dummy;
+	q->last.raw_p = &q->dummy;
 }
 
 // Return whether lqueue is empty before queueing.
 static inline __attribute__((always_inline))
 bool lqueue_enqueue(struct lqueue *const q, struct lqueue_node *const node)
 {
-	struct tag_pnode old_tail;
-	struct tag_pnode new_tail;
+	struct tag_pnode old_last;
+	struct tag_pnode new_last;
 	struct tag_pnode old_next;
 	struct tag_pnode new_next;
 
@@ -88,30 +88,30 @@ bool lqueue_enqueue(struct lqueue *const q, struct lqueue_node *const node)
 		/*
 		 * Is memory_order_acquire needed here?
 		 * I believe it is necessary because we must ensure that
-		 * the previous 'tail->next is written as NULL'
+		 * the previous 'last->next is written as NULL'
 		 * can be visibled in this thread
 		 */
-		old_tail.raw = atomic_load_explicit(&q->tail.atomic, memory_order_acquire);
+		old_last.raw = atomic_load_explicit(&q->last.atomic, memory_order_acquire);
 retry:
 		/*
 		 * The user must ensure that the unqueued node can't be free;
-		 * otherwise, accessing tail->next is dangerous,
+		 * otherwise, accessing last->next is dangerous,
 		 * which may cause a segment fault
 		 *
 		 * The following content is similar, so it will be omitted
 		 */
-		old_next.raw = atomic_load_explicit(&old_tail.raw_p->next.atomic, memory_order_relaxed);
+		old_next.raw = atomic_load_explicit(&old_last.raw_p->next.atomic, memory_order_relaxed);
 		if (old_next.raw_p) {
-			new_tail.raw_p = old_next.raw_p;
-			new_tail.count = old_tail.count + 1;
+			new_last.raw_p = old_next.raw_p;
+			new_last.count = old_last.count + 1;
 			/*
 			 * Is memory_order_release needed here?
 			 * I believe it is necessary because we must ensure that
-			 * the previous 'new_tail.raw_p->next is written as NULL'
-			 * can be visibled to all threads before 'q->tail updating' can be visibled
+			 * the previous 'new_last.raw_p->next is written as NULL'
+			 * can be visibled to all threads before 'q->last updating' can be visibled
 			 */
-			if (atomic_compare_exchange_weak_explicit(&q->tail.atomic, &old_tail.raw, new_tail.raw, memory_order_release, memory_order_acquire))
-				old_tail.raw = new_tail.raw;
+			if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_acquire))
+				old_last.raw = new_last.raw;
 			goto retry;
 		}
 
@@ -121,18 +121,18 @@ retry:
 		 * but it is necessary to verify that the counter is not changed
 		 */
 		new_next.count = old_next.count;
-	} while (!atomic_compare_exchange_weak_explicit(&old_tail.raw_p->next.atomic, &old_next.raw, new_next.raw, memory_order_release, memory_order_relaxed));
+	} while (!atomic_compare_exchange_weak_explicit(&old_last.raw_p->next.atomic, &old_next.raw, new_next.raw, memory_order_release, memory_order_relaxed));
 
-	new_tail.raw_p = node;
-	new_tail.count = old_tail.count + 1;
+	new_last.raw_p = node;
+	new_last.count = old_last.count + 1;
 	/*
 	 * Is memory_order_release needed here?
 	 * I believe it is necessary because we must ensure that
-	 * the previous 'new_tail.raw_p->next(node->next) is written as NULL'
-	 * and 'old_tail.raw_p->next(tail->next) is written as node'
-	 * can be visibled to all threads before 'q->tail updating' can be visibled
+	 * the previous 'new_last.raw_p->next(node->next) is written as NULL'
+	 * and 'old_last.raw_p->next(last->next) is written as node'
+	 * can be visibled to all threads before 'q->last updating' can be visibled
 	 */
-	atomic_compare_exchange_strong_explicit(&q->tail.atomic, &old_tail.raw, new_tail.raw, memory_order_release, memory_order_relaxed);
+	atomic_compare_exchange_strong_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_relaxed);
 
 	return !atomic_fetch_add_explicit(&q->num, 1, memory_order_release);
 }
@@ -143,8 +143,8 @@ struct lqueue_node *lqueue_dequeue(struct lqueue *const q, bool *const is_empty_
 	size_t num;
 	struct tag_pnode old_first;
 	struct tag_pnode new_first;
-	struct tag_pnode old_tail;
-	struct tag_pnode new_tail;
+	struct tag_pnode old_last;
+	struct tag_pnode new_last;
 	struct lqueue_node *old_next_p;
 
 	num = atomic_load_explicit(&q->num, memory_order_relaxed);
@@ -155,21 +155,21 @@ struct lqueue_node *lqueue_dequeue(struct lqueue *const q, bool *const is_empty_
 
 	while (1) {
 		// This acquire is sync for the queueer
-		old_tail.raw = atomic_load_explicit(&q->tail.atomic, memory_order_acquire);
+		old_last.raw = atomic_load_explicit(&q->last.atomic, memory_order_acquire);
 retry1:
 		// This acquire is sync for other dequeueer
 		old_first.raw = atomic_load_explicit(&q->first.atomic, memory_order_acquire);
 
-		if (old_first.raw_p == old_tail.raw_p) {
-			old_next_p = atomic_load_explicit(&old_tail.raw_p->next.p, memory_order_relaxed);
+		if (old_first.raw_p == old_last.raw_p) {
+			old_next_p = atomic_load_explicit(&old_last.raw_p->next.p, memory_order_relaxed);
 			if (old_next_p) {
-				new_tail.raw_p = old_next_p;
-				new_tail.count = old_tail.count + 1;
-				if (atomic_compare_exchange_weak_explicit(&q->tail.atomic, &old_tail.raw, new_tail.raw, memory_order_release, memory_order_acquire))
-					old_tail.raw = new_tail.raw;
+				new_last.raw_p = old_next_p;
+				new_last.count = old_last.count + 1;
+				if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_acquire))
+					old_last.raw = new_last.raw;
 				goto retry1;
 			}
-			assert(old_tail.raw_p != &q->dummy);
+			assert(old_last.raw_p != &q->dummy);
 			assert(q->dummy_is_free);
 			q->dummy_is_free = 0;
 			lqueue_enqueue(q, &q->dummy);
