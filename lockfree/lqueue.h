@@ -14,12 +14,14 @@
 #include <stdalign.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
+#include <assert.h>
 
 struct lqueue_node;
 struct __tag_pnode {
 	struct lqueue_node *p;
 	size_t count;
-};
+} __attribute__ ((aligned (2 * sizeof(void *))));
 struct tag_pnode {
 	union {
 		struct {
@@ -50,7 +52,7 @@ struct lqueue {
 	struct tag_pnode first;
 	struct tag_pnode tail;
 	atomic_size_t num;
-	struct lqueue_note dummy;
+	struct lqueue_node dummy;
 	bool dummy_is_free;
 };
 
@@ -59,12 +61,12 @@ void lqueue_init(struct lqueue *const q)
 {
 	memset(q, 0, sizeof(*q));
 	q->first.raw_p = &q->dummy;
-	q->last.raw_p = &q->dummy;
+	q->tail.raw_p = &q->dummy;
 }
 
 // Return whether lqueue is empty before queueing.
 static inline __attribute__((always_inline))
-bool lqueue_queue(struct lqueue *const q, struct lqueue_node *const node)
+bool lqueue_enqueue(struct lqueue *const q, struct lqueue_node *const node)
 {
 	struct tag_pnode old_tail;
 	struct tag_pnode new_tail;
@@ -161,16 +163,16 @@ retry1:
 		if (old_first.raw_p == old_tail.raw_p) {
 			old_next_p = atomic_load_explicit(&old_tail.raw_p->next.p, memory_order_relaxed);
 			if (old_next_p) {
-				new_tail.raw_p = old_next.raw_p;
+				new_tail.raw_p = old_next_p;
 				new_tail.count = old_tail.count + 1;
 				if (atomic_compare_exchange_weak_explicit(&q->tail.atomic, &old_tail.raw, new_tail.raw, memory_order_release, memory_order_acquire))
 					old_tail.raw = new_tail.raw;
 				goto retry1;
 			}
-			assert(old_tail.raw_p != &p->dummy);
+			assert(old_tail.raw_p != &q->dummy);
 			assert(q->dummy_is_free);
 			q->dummy_is_free = 0;
-			lqueue_queue(q, &q->dummy);
+			lqueue_enqueue(q, &q->dummy);
 			continue;
 		}
 

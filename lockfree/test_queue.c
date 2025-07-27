@@ -9,7 +9,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include "lstack.h"
+#include "lqueue.h"
 
 #define container_of(ptr, type, member) ({				\
 	void *__mptr = (void *)(ptr);					\
@@ -18,11 +18,11 @@
 #define POOL_SIZE 12
 
 static struct entry {
-	struct lstack_node node;
+	struct lqueue_node node;
 	int data;
 } pool[POOL_SIZE];
 
-static struct lstack_head head;
+static struct lqueue queue;
 
 static volatile size_t success_count[12];
 
@@ -32,11 +32,11 @@ static noreturn void* test(void *arg)
 	bool unused;
 
 	while (1) {
-		struct lstack_node *tmp;
+		struct lqueue_node *tmp;
 		struct entry *entry;
 		size_t loop_num;
 
-		tmp = lstack_pop(&head, &unused);
+		tmp = lqueue_dequeue(&queue, &unused);
 		assert(tmp != NULL);
 
 		entry = container_of(tmp, struct entry, node);
@@ -48,7 +48,7 @@ static noreturn void* test(void *arg)
 		__asm__ volatile ("":"+m"(entry)::"memory");
 		assert(entry->data == 1);
 		entry->data = 0;
-		lstack_push(&head, tmp);
+		lqueue_enqueue(&queue, tmp);
 		++success_count[cpu];
 	}
 }
@@ -58,9 +58,10 @@ static noreturn void *watch_dog(void *arg);
 int main(void)
 {
 	pthread_t th;
+	lqueue_init(&queue);
 
 	for (size_t i = 0; i < POOL_SIZE; ++i)
-		lstack_push(&head, &pool[i].node);
+		lqueue_enqueue(&queue, &pool[i].node);
 
 	for (size_t i = 1; i < 12; ++i)
 		assert(pthread_create(&th, NULL, test, (void *)(uintptr_t)i) == 0);

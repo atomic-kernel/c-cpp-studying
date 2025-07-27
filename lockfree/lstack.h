@@ -11,6 +11,7 @@
 #include <stddef.h>
 #include <stdalign.h>
 #include <stdint.h>
+#include <assert.h>
 
 struct lstack_node {
 	struct lstack_node *next;
@@ -19,7 +20,7 @@ struct lstack_node {
 struct __lstack_head {
 	size_t count;
 	struct lstack_node *first;
-};
+} __attribute__ ((aligned (2 * sizeof(void *))));
 struct lstack_head {
 	union {
 		struct {
