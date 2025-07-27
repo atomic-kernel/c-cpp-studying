@@ -3,6 +3,8 @@
 
 #include <stdatomic.h>
 #include <stddef.h>
+#include <stdalign.h>
+#include <stdint.h>
 
 /*
  * Lockfree stack:
@@ -34,6 +36,11 @@ struct lstack_head {
 		_Atomic struct __lstack_head atomic;
 	};
 };
+
+#ifdef __clang__
+// May fail on GCC
+_Static_assert(__atomic_always_lock_free(sizeof(struct lstack_head), (void *)(uintptr_t)_Alignof(struct lstack_head)));
+#endif
 
 // Return whether list is empty before push.
 static inline __attribute__((always_inline))
