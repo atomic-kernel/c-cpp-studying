@@ -1,8 +1,21 @@
-#ifdef LQUEUE_H
+/*
+ * Lockfree queue:
+ * 1. The caller must ensure that nodes and heads will never be "free"
+ *    For example, let them allocate from the static memory
+ * 2. The caller is not allowed to modify the content of the node,
+ *    even if it is not in the queue
+ */
+
+#ifndef LQUEUE_H
 #define LQUEUE_H
 
-struct lqueue_node;
+#include <stdatomic.h>
+#include <stddef.h>
+#include <stdalign.h>
+#include <stdint.h>
+#include <stdbool.h>
 
+struct lqueue_node;
 struct __tag_pnode {
 	struct lqueue_node *p;
 	size_t count;
@@ -24,6 +37,11 @@ struct tag_pnode {
 	};
 };
 
+#ifdef __clang__
+// May fail on GCC
+_Static_assert(__atomic_always_lock_free(sizeof(struct __tag_pnode), (void *)(uintptr_t)_Alignof(struct __tag_pnode)));
+#endif
+
 struct lqueue_node {
 	struct tag_pnode next;
 };
@@ -31,8 +49,9 @@ struct lqueue_node {
 struct lqueue {
 	struct tag_pnode first;
 	struct tag_pnode tail;
-	struct lqueue_note dummy;
 	atomic_size_t num;
+	struct lqueue_note dummy;
+	bool dummy_is_free;
 };
 
 static inline __attribute__((always_inline))
@@ -54,7 +73,8 @@ bool lqueue_queue(struct lqueue *const q, struct lqueue_node *const node)
 
 	// flush node->next to NULL
 	atomic_fetch_add_explicit(&node->next.count, 1, memory_order_relaxed);
-	// 实际上不需要原子，仅为了保证写入顺序 count -> p
+	// Actually, atomic operations are not required here.
+	// It is only to ensure the writing order of count -> p
 	atomic_store_explicit(&node->next.p, NULL, memory_order_release);
 	//old_next.raw = node->next.raw;
 	//new_next.raw_p = NULL;
@@ -94,7 +114,11 @@ retry:
 		}
 
 		new_next.raw_p = node;
-		new_next.count = old_next.count; // 此处不需要刷新计数器
+		/*
+		 * There is no need to update the counter here,
+		 * but it is necessary to verify that the counter is not changed
+		 */
+		new_next.count = old_next.count;
 	} while (!atomic_compare_exchange_weak_explicit(&old_tail.raw_p->next.atomic, &old_next.raw, new_next.raw, memory_order_release, memory_order_relaxed));
 
 	new_tail.raw_p = node;
@@ -119,6 +143,7 @@ struct lqueue_node *lqueue_dequeue(struct lqueue *const q, bool *const is_empty_
 	struct tag_pnode new_first;
 	struct tag_pnode old_tail;
 	struct tag_pnode new_tail;
+	struct lqueue_node *old_next_p;
 
 	num = atomic_load_explicit(&q->num, memory_order_relaxed);
 	do {
@@ -141,15 +166,12 @@ retry1:
 				if (atomic_compare_exchange_weak_explicit(&q->tail.atomic, &old_tail.raw, new_tail.raw, memory_order_release, memory_order_acquire))
 					old_tail.raw = new_tail.raw;
 				goto retry1;
-			} else {
-				// 插入 dummy
-				// 重试
-				assert(old_tail.raw_p != &p->dummy);
-				assert(q->dummy_free);
-				q->dummy_free = 0;
-				lqueue_queue(q, &q->dummy);
-				continue;
 			}
+			assert(old_tail.raw_p != &p->dummy);
+			assert(q->dummy_is_free);
+			q->dummy_is_free = 0;
+			lqueue_queue(q, &q->dummy);
+			continue;
 		}
 
 		new_first.raw_p = old_first.raw_p->next.raw_p;
@@ -158,7 +180,8 @@ retry1:
 			continue;
 		if (old_first.raw_p != &q->dummy)
 			break;
-		atomic_set_explicit(&q->dummy_busy, 0, memory_order_release);
+		assert(!q->dummy_is_free);
+		q->dummy_is_free = 1;
 	}
 
 	*is_empty_after_dequeue = (num == 1);

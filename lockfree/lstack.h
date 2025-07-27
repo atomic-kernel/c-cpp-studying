@@ -1,3 +1,9 @@
+/*
+ * Lockfree stack:
+ * The caller must ensure that nodes and heads will never be "free"
+ * For example, let them allocate from the static memory
+ */
+
 #ifndef LSTACK_H
 #define LSTACK_H
 
@@ -5,12 +11,6 @@
 #include <stddef.h>
 #include <stdalign.h>
 #include <stdint.h>
-
-/*
- * Lockfree stack:
- * The caller must ensure that nodes and heads can't be "free"
- * For example, let them allocate from the static memory
- */
 
 struct lstack_node {
 	struct lstack_node *next;
@@ -39,7 +39,7 @@ struct lstack_head {
 
 #ifdef __clang__
 // May fail on GCC
-_Static_assert(__atomic_always_lock_free(sizeof(struct lstack_head), (void *)(uintptr_t)_Alignof(struct lstack_head)));
+_Static_assert(__atomic_always_lock_free(sizeof(struct __lstack_head), (void *)(uintptr_t)_Alignof(struct __lstack_head)));
 #endif
 
 // Return whether lstack is empty before pushing.
