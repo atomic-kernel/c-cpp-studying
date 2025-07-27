@@ -61,6 +61,11 @@ struct lstack_node *lstack_pop(struct lstack_head *const head, bool *const is_em
 		if (!old_head.raw_first)
 			return NULL;
 
+		/*
+		 * The user must ensure that the popped node can't be free;
+		 * otherwise, accessing first->next is dangerous,
+		 * which may cause a segment fault
+		 */
 		new_head.raw_first = old_head.raw_first->next;
 		new_head.raw_count = old_head.raw_count + 1;
 	} while (!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_acquire, memory_order_acquire));
