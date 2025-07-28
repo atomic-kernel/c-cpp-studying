@@ -15,16 +15,18 @@
 	void *__mptr = (void *)(ptr);					\
 	((type *)(__mptr - offsetof(type, member))); })
 
-#define POOL_SIZE 12
+#define POOL_SIZE 3
+#define THREAD_NUM 3
 
 static struct entry {
 	struct lqueue_node node;
 	int data;
+	volatile size_t count;
 } pool[POOL_SIZE];
 
 static struct lqueue queue;
 
-static volatile size_t success_count[12];
+static volatile size_t success_count[THREAD_NUM];
 
 static noreturn void* test(void *arg)
 {
@@ -37,7 +39,9 @@ static noreturn void* test(void *arg)
 		size_t loop_num;
 
 		tmp = lqueue_dequeue(&queue, &unused);
-		assert(tmp != NULL);
+		if (THREAD_NUM > POOL_SIZE && !tmp)
+			continue;
+		assert(tmp);
 
 		entry = container_of(tmp, struct entry, node);
 		assert(entry->data == 0);
@@ -48,6 +52,7 @@ static noreturn void* test(void *arg)
 		__asm__ volatile ("":"+m"(entry)::"memory");
 		assert(entry->data == 1);
 		entry->data = 0;
+		++entry->count;
 		lqueue_enqueue(&queue, tmp);
 		++success_count[cpu];
 	}
@@ -63,7 +68,7 @@ int main(void)
 	for (size_t i = 0; i < POOL_SIZE; ++i)
 		lqueue_enqueue(&queue, &pool[i].node);
 
-	for (size_t i = 1; i < 12; ++i)
+	for (size_t i = 1; i < THREAD_NUM; ++i)
 		assert(pthread_create(&th, NULL, test, (void *)(uintptr_t)i) == 0);
 
 	assert(pthread_create(&th, NULL, watch_dog, NULL) == 0);
@@ -73,17 +78,25 @@ int main(void)
 
 static void *watch_dog(void *arg)
 {
-	size_t count[12];
+	size_t count[THREAD_NUM];
+	size_t node_count[POOL_SIZE];
 
-	for (size_t i = 0; i < 12; ++i)
+	for (size_t i = 0; i < THREAD_NUM; ++i)
 		count[i] = success_count[i];
+	for (size_t i = 0; i < POOL_SIZE; ++i)
+		node_count[i] = pool[i].count;
 
 	while (1) {
 		sleep(3);
-		for (size_t i = 0; i < 12; ++i) {
+		for (size_t i = 0; i < THREAD_NUM; ++i) {
 			assert(count[i] != success_count[i]);
 			count[i] = success_count[i];
 			printf("%zu %zu,", i, count[i]);
+		}
+		for (size_t i = 0; i < POOL_SIZE; ++i) {
+			assert(node_count[i] != pool[i].count);
+			node_count[i] = pool[i].count;
+			printf("%zu %zu,", i, node_count[i]);
 		}
 		putchar('\n');
 	}
