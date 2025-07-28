@@ -124,7 +124,6 @@ struct lqueue_node *lqueue_dequeue(struct lqueue *const q, bool *const is_empty_
 	struct tag_pnode new_first;
 	struct tag_pnode old_last;
 	struct tag_pnode new_last;
-	struct tag_pnode old_next;
 	struct lqueue_node *ret;
 
 	num = atomic_load_explicit(&q->num, memory_order_relaxed);
@@ -135,11 +134,14 @@ struct lqueue_node *lqueue_dequeue(struct lqueue *const q, bool *const is_empty_
 
 	while (1) {
 		old_first.raw = atomic_load_explicit(&q->first.atomic, memory_order_acquire);
+retry0:
 		old_last.raw = atomic_load_explicit(&q->last.atomic, memory_order_acquire);
 retry1:
 
 		assert(old_first.raw_count <= old_last.raw_count);
 		if (old_first.raw_count == old_last.raw_count) {
+			struct tag_pnode old_next;
+
 			assert(old_first.raw_p == old_last.raw_p);
 			assert(old_last.raw_p != &q->dummy);
 			assert(q->dummy_is_free);
@@ -165,7 +167,8 @@ retry1:
 		new_first.raw_p = old_first.raw_p->next.raw_p;
 		new_first.raw_count = old_first.raw_count + 1;
 		if (!atomic_compare_exchange_weak_explicit(&q->first.atomic, &old_first.raw, new_first.raw, memory_order_release, memory_order_acquire))
-			continue;
+			goto retry0;
+		/* Success dequeue an element */
 		ret = old_first.raw_p;
 		struct tag_pnode tmp_old;
 		struct tag_pnode tmp_new;
