@@ -3,7 +3,8 @@
  * 1. The caller must ensure that nodes and heads will never be "free"
  *    For example, let them allocate from the static memory
  * 2. The caller is not allowed to modify the content of the node,
- *    even if it is not in the queue
+ *    even if it is not in the queue (Exception: Dequeue from a queue
+ *                     and then enqueue into another queue is allowed)
  */
 
 #ifndef LQUEUE_H
@@ -22,8 +23,7 @@ struct __tag_pnode {
 	struct lqueue_node *p;
 	size_t count;
 };
-struct tag_pnode {
-	union {
+union tag_pnode {
 		struct {
 			union {
 				struct lqueue_node *raw_p;
@@ -36,21 +36,21 @@ struct tag_pnode {
 		};
 		struct __tag_pnode raw;
 		_Atomic struct __tag_pnode atomic;
-	};
 };
 
 #ifdef __clang__
 // May fail on GCC
-_Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __tag_pnode), (void *)(uintptr_t)_Alignof(_Atomic struct __tag_pnode)));
+_Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __tag_pnode),
+			(void *)(uintptr_t)_Alignof(_Atomic struct __tag_pnode)),
+		"lock free check failed!");
 #endif
 
 struct lqueue_node {
-	struct tag_pnode next;
+	union tag_pnode next;
 };
-
 struct lqueue {
-	struct tag_pnode first;
-	struct tag_pnode last;
+	union tag_pnode first;
+	union tag_pnode last;
 	atomic_size_t num;
 	struct lqueue_node dummy;
 	bool dummy_is_free;
@@ -60,6 +60,11 @@ static inline __attribute__((always_inline))
 void lqueue_init(struct lqueue *const q)
 {
 	memset(q, 0, sizeof(*q));
+	/*
+	 * use q as last->next instead of NULL,
+	 * This is to handle ABA issues that may arise between multiple queues
+	 */
+	q->dummy.next.raw_p = (void *)q;
 	q->first.raw_p = &q->dummy;
 	q->last.raw_p = &q->dummy;
 }
@@ -68,40 +73,48 @@ static inline __attribute__((always_inline))
 void __lqueue_enqueue(struct lqueue *const q, struct lqueue_node *const node)
 {
 	size_t count;
-	struct tag_pnode old_last;
-	struct tag_pnode new_last;
+	union tag_pnode old_last;
+	union tag_pnode new_last;
 
-	assert(q);
-	assert(node);
-	assert(node->next.raw_p == NULL);
+	assert(node != (void *)q);
+	atomic_store_explicit(&node->next.p, NULL, memory_order_relaxed);
+	atomic_thread_fence(memory_order_release);
 
 	while (1) {
-		struct tag_pnode old_next;
-		struct tag_pnode new_next;
+		union tag_pnode old_next;
+		union tag_pnode new_next;
 
 		old_last.raw = atomic_load_explicit(&q->last.atomic, memory_order_acquire);
 retry:
 		assert(node != old_last.raw_p);
 		old_next.raw = atomic_load_explicit(&old_last.raw_p->next.atomic, memory_order_relaxed);
 
-		if (old_next.raw_count != old_last.raw_count) {
-			assert(old_next.raw_count > old_last.raw_count);
+		if (old_next.raw_count != old_last.raw_count)
 			continue;
-		}
 		count = old_last.raw_count;
 
-		if (old_next.raw_p) {
+		if (old_next.raw_p != (void *)q) {
+			/* acquire with load last->next */
 			atomic_thread_fence(memory_order_acquire);
 			new_last.raw_p = old_next.raw_p;
 			new_last.raw_count = count + 1;
-			/* 使用old_last不变保证old_next.raw_p有效 */
-			if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_acquire))
+			if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_acquire)) {
+				/* not NULL or (void *)-1 */
+				assert((uintptr_t)new_last.raw_p + 1 > 1);
+				assert(new_last.raw_p != (void *)q);
 				old_last.raw = new_last.raw;
+			}
 			goto retry;
 		}
 
-		assert(atomic_load_explicit(&node->next.count, memory_order_relaxed) <= count + 1);
+		/*
+		 * Guarantee the writing order:
+		 * node->next.p = NULL
+		 * node->next.count = new_count
+		 * node->next.p = q
+		 */ 
 		atomic_store_explicit(&node->next.count, count + 1, memory_order_relaxed);
+		atomic_store_explicit(&node->next.p, (struct lqueue_node *)q, memory_order_release);
 		new_next.raw_p = node;
 		new_next.raw_count = count;
 		if (atomic_compare_exchange_weak_explicit(&old_last.raw_p->next.atomic, &old_next.raw, new_next.raw, memory_order_release, memory_order_relaxed))
@@ -125,57 +138,46 @@ bool lqueue_enqueue(struct lqueue *const q, struct lqueue_node *const node)
 static inline __attribute__((always_inline))
 struct lqueue_node *__lqueue_dequeue(struct lqueue *const q)
 {
-	struct tag_pnode old_first;
-	struct tag_pnode new_first;
-	struct tag_pnode old_last;
-	struct tag_pnode new_last;
-	struct lqueue_node *ret;
+	union tag_pnode old_first;
+	union tag_pnode new_first;
+	union tag_pnode old_last;
 
-	while (1) {
-		old_first.raw = atomic_load_explicit(&q->first.atomic, memory_order_acquire);
 retry0:
-		old_last.raw = atomic_load_explicit(&q->last.atomic, memory_order_acquire);
+	old_first.raw = atomic_load_explicit(&q->first.atomic, memory_order_acquire);
 retry1:
+	old_last.raw = atomic_load_explicit(&q->last.atomic, memory_order_acquire);
+retry2:
+	assert(old_first.raw_count <= old_last.raw_count);
+	if (old_first.raw_count == old_last.raw_count) {
+		union tag_pnode old_next;
+		union tag_pnode new_last;
 
-		assert(old_first.raw_count <= old_last.raw_count);
-		if (old_first.raw_count == old_last.raw_count) {
-			struct tag_pnode old_next;
+		assert(old_first.raw_p == old_last.raw_p);
 
-			assert(old_first.raw_p == old_last.raw_p);
-
-			old_next.raw = atomic_load_explicit(&old_last.raw_p->next.atomic, memory_order_relaxed);
-			if (old_next.raw_count != old_last.raw_count) {
-				assert(old_next.raw_count > old_last.raw_count);
-				continue;
-			}
-			if (old_next.raw_p) {
-				atomic_thread_fence(memory_order_acquire);
-				new_last.raw_p = old_next.raw_p;
-				new_last.raw_count = old_last.raw_count + 1;
-				if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_acquire))
-					old_last.raw = new_last.raw;
-				goto retry1;
-			}
-			return NULL;
-		}
-
-		new_first.raw_p = old_first.raw_p->next.raw_p;
-		new_first.raw_count = old_first.raw_count + 1;
-		if (!atomic_compare_exchange_weak_explicit(&q->first.atomic, &old_first.raw, new_first.raw, memory_order_release, memory_order_acquire))
+		old_next.raw = atomic_load_explicit(&old_last.raw_p->next.atomic, memory_order_relaxed);
+		if (old_next.raw_count != old_last.raw_count)
 			goto retry0;
-		break;
+		if (old_next.raw_p != (void *)q) {
+			atomic_thread_fence(memory_order_acquire);
+			new_last.raw_p = old_next.raw_p;
+			new_last.raw_count = old_last.raw_count + 1;
+			if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_acquire)) {
+				assert((uintptr_t)new_last.raw_p + 1 > 1);
+				assert(new_last.raw_p != (void *)q);
+				old_last.raw = new_last.raw;
+			}
+			goto retry2;
+		}
+		return NULL;
 	}
-	/* Success dequeue an element */
-	ret = old_first.raw_p;
-	struct tag_pnode tmp_old;
-	struct tag_pnode tmp_new;
-	tmp_old.raw_p = ret->next.raw_p;
-	tmp_old.raw_count = new_first.raw_count - 1;
-	tmp_new.raw_p = NULL;
-	tmp_new.raw_count = new_first.raw_count;
-	assert(atomic_compare_exchange_strong_explicit(&ret->next.atomic, &tmp_old.raw, tmp_new.raw, memory_order_relaxed, memory_order_relaxed));
 
-	return ret;
+	new_first.raw_p = old_first.raw_p->next.raw_p;
+	new_first.raw_count = old_first.raw_count + 1;
+	if (!atomic_compare_exchange_weak_explicit(&q->first.atomic, &old_first.raw, new_first.raw, memory_order_release, memory_order_acquire))
+		goto retry1;
+	assert((uintptr_t)new_first.raw_p + 1 > 1);
+	assert(new_first.raw_p != (void *)q);
+	return old_first.raw_p;
 }
 
 static inline __attribute__((always_inline))

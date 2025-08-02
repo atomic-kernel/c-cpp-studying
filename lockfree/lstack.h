@@ -16,21 +16,20 @@
 struct lstack_node {
 	struct lstack_node *next;
 };
-
 struct __lstack_head {
-	size_t count;
 	struct lstack_node *first;
-} __attribute__ ((aligned (2 * sizeof(void *))));
+	size_t count;
+};
 struct lstack_head {
 	union {
 		struct {
 			union {
-				size_t raw_count;
-				atomic_size_t count;
-			};
-			union {
 				struct lstack_node *raw_first;
 				_Atomic(struct lstack_node *) first;
+			};
+			union {
+				size_t raw_count;
+				atomic_size_t count;
 			};
 		};
 		struct __lstack_head raw;
@@ -40,7 +39,9 @@ struct lstack_head {
 
 #ifdef __clang__
 // May fail on GCC
-_Static_assert(__atomic_always_lock_free(sizeof(struct __lstack_head), (void *)(uintptr_t)_Alignof(struct __lstack_head)));
+_Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __lstack_head),
+			(void *)(uintptr_t)_Alignof(_Atomic struct __lstack_head)),
+		"lock free check failed\n");
 #endif
 
 // Return whether lstack is empty before pushing.
@@ -77,11 +78,8 @@ struct lstack_node *lstack_pop(struct lstack_head *const head, bool *const is_em
 		new_head.raw_first = old_head.raw_first->next;
 		new_head.raw_count = old_head.raw_count + 1;
 		/*
-		 * Can we omit the "acquire" barrier in the case of success?
-		 * I think it's OK, because we have already acquired "head" before.
-		 * The release barrier is to ensure that
-		 * the reading of `old_head->next` is completed
-		 * before updating head
+		 * omit acquire barrier in the case of success,
+		 * because loaded head with acquire before
 		 */
 	} while (!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_release, memory_order_acquire));
 
