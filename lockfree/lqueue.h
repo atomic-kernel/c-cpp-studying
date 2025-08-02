@@ -38,11 +38,27 @@ union tag_pnode {
 		_Atomic struct __tag_pnode atomic;
 };
 
-#ifdef __clang__
-// May fail on GCC
+#if __WORDSIZE == 64
+_Static_assert(sizeof(union tag_pnode) == 16 && sizeof(void *) == 8 &&
+	       _Alignof(union tag_pnode) == 16, "size check failed!");
+#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16
+#warning "your platform may be not support atomic 16"
+#endif
+#elif __WORDSIZE == 32
+_Static_assert(sizeof(union tag_pnode) == 8 && sizeof(void *) == 4 &&
+	       _Alignof(union tag_pnode) == 8, "size check failed!");
+#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
+#warning "your platform may be not support atomic 8"
+#endif
+#else
+#error "unknown wordsize"
+#endif
+
+#if (__WORDSIZE == 32 && defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8)) || \
+	(defined(__clang__) && __WORDSIZE == 64 && defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_16))
 _Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __tag_pnode),
 			(void *)(uintptr_t)_Alignof(_Atomic struct __tag_pnode)),
-		"lock free check failed!");
+		"lock free check failed\n");
 #endif
 
 struct lqueue_node {
@@ -57,16 +73,21 @@ struct lqueue {
 };
 
 static inline __attribute__((always_inline))
-void lqueue_init(struct lqueue *const q)
+void __lqueue_init(struct lqueue *const q, struct lqueue_node *const first)
 {
 	memset(q, 0, sizeof(*q));
 	/*
 	 * use q as last->next instead of NULL,
 	 * This is to handle ABA issues that may arise between multiple queues
 	 */
-	q->dummy.next.raw_p = (void *)q;
-	q->first.raw_p = &q->dummy;
-	q->last.raw_p = &q->dummy;
+	first->next.raw_p = (void *)q;
+	q->first.raw_p = first;
+	q->last.raw_p = first;
+}
+static inline __attribute__((always_inline))
+void lqueue_init(struct lqueue *const q)
+{
+	__lqueue_init(q, &q->dummy);
 }
 
 static inline __attribute__((always_inline))
@@ -101,7 +122,6 @@ retry:
 			if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_acquire)) {
 				/* not NULL or (void *)-1 */
 				assert((uintptr_t)new_last.raw_p + 1 > 1);
-				assert(new_last.raw_p != (void *)q);
 				old_last.raw = new_last.raw;
 			}
 			goto retry;
@@ -130,8 +150,8 @@ retry:
 static inline __attribute__((always_inline))
 bool lqueue_enqueue(struct lqueue *const q, struct lqueue_node *const node)
 {
+	assert(node != &q->dummy);
 	__lqueue_enqueue(q, node);
-
 	return !atomic_fetch_add_explicit(&q->num, 1, memory_order_release);
 }
 
@@ -163,7 +183,6 @@ retry2:
 			new_last.raw_count = old_last.raw_count + 1;
 			if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_acquire)) {
 				assert((uintptr_t)new_last.raw_p + 1 > 1);
-				assert(new_last.raw_p != (void *)q);
 				old_last.raw = new_last.raw;
 			}
 			goto retry2;

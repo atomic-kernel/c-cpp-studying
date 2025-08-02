@@ -37,8 +37,24 @@ struct lstack_head {
 	};
 };
 
-#ifdef __clang__
-// May fail on GCC
+#if __WORDSIZE == 64
+_Static_assert(sizeof(struct lstack_head) == 16 && sizeof(void *) == 8 &&
+	       _Alignof(struct lstack_head) == 16, "size check failed!");
+#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16
+#warning "your platform may be not support atomic 16"
+#endif
+#elif __WORDSIZE == 32
+_Static_assert(sizeof(struct lstack_head) == 8 && sizeof(void *) == 4 &&
+	       _Alignof(struct lstack_head) == 8, "size check failed!");
+#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
+#warning "your platform may be not support atomic 8"
+#endif
+#else
+#error "unknown wordsize"
+#endif
+
+#if (__WORDSIZE == 32 && defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8)) || \
+	(defined(__clang__) && __WORDSIZE == 64 && defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_16))
 _Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __lstack_head),
 			(void *)(uintptr_t)_Alignof(_Atomic struct __lstack_head)),
 		"lock free check failed\n");
@@ -86,4 +102,23 @@ struct lstack_node *lstack_pop(struct lstack_head *const head, bool *const is_em
 	*is_empty_after_pop = !new_head.raw_first;
 	return old_head.raw_first;
 }
+
+static inline __attribute__((always_inline))
+struct lstack_node *lstack_pop_all(struct lstack_head *const head)
+{
+	struct lstack_head old_head;
+	struct lstack_head new_head;
+
+	old_head.raw = atomic_load_explicit(&head->atomic, memory_order_relaxed);
+	do {
+		if (!old_head.raw_first)
+			return NULL;
+
+		new_head.raw_first = NULL;
+		new_head.raw_count = old_head.raw_count + 1;
+	} while (!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_acq_rel, memory_order_relaxed));
+
+	return old_head.raw_first;
+}
+
 #endif
