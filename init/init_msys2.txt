@@ -1,0 +1,21 @@
+# 搜索软件包
+pacman -Ss xxx
+# 卸载软件包
+pacman -Rscn xxx
+
+
+# 更新软件包
+pacman -Syu
+#依赖
+pacman -S ucrt64/mingw-w64-ucrt-x86_64-clang ucrt64/mingw-w64-ucrt-x86_64-gcc vim
+
+
+
+
+cat >> ~/.inputrc << EOF
+
+"\e[5~": history-search-backward
+"\e[6~": history-search-forward
+"\e[H": beginning-of-line
+"\e[F": end-of-line
+EOF
