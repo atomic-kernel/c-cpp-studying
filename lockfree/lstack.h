@@ -37,27 +37,32 @@ struct lstack_head {
 	};
 };
 
-#if __WORDSIZE == 64
+#ifndef UINTPTR_MAX
+#error "UINTPTR_MAX not defined"
+#endif
+
+#if UINTPTR_MAX == UINT64_MAX /* 64bits */
 _Static_assert(sizeof(struct lstack_head) == 16 && sizeof(void *) == 8 &&
 	       _Alignof(struct lstack_head) == 16, "size check failed!");
 #ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16
 #warning "your platform may be not support atomic 16"
+#elif defined(__clang__) // May failed on gcc
+_Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __lstack_head),
+			(void *)(uintptr_t)_Alignof(_Atomic struct __lstack_head)),
+		"lock free check failed\n");
 #endif
-#elif __WORDSIZE == 32
+#elif UINTPTR_MAX == UINT32_MAX /* 32bits */
 _Static_assert(sizeof(struct lstack_head) == 8 && sizeof(void *) == 4 &&
 	       _Alignof(struct lstack_head) == 8, "size check failed!");
 #ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
 #warning "your platform may be not support atomic 8"
-#endif
 #else
-#error "unknown wordsize"
-#endif
-
-#if (__WORDSIZE == 32 && defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8)) || \
-	(defined(__clang__) && __WORDSIZE == 64 && defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_16))
 _Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __lstack_head),
 			(void *)(uintptr_t)_Alignof(_Atomic struct __lstack_head)),
 		"lock free check failed\n");
+#endif
+#else /* unknown bits */
+#error "unknown wordsize"
 #endif
 
 // Return whether lstack is empty before pushing.
