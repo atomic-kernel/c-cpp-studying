@@ -86,6 +86,7 @@ void __lqueue_init(struct lqueue *const q, struct lqueue_node *const first)
 	 * This is to handle ABA issues that may arise between multiple queues
 	 */
 	first->next.raw_p = (void *)q;
+	first->next.raw_count = 0;
 	q->first.raw_p = first;
 	q->last.raw_p = first;
 }
