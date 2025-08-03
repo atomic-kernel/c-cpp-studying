@@ -7,9 +7,7 @@ pacman -Rscn xxx
 # 更新软件包
 pacman -Syu
 #依赖
-pacman -S ucrt64/mingw-w64-ucrt-x86_64-clang ucrt64/mingw-w64-ucrt-x86_64-gcc vim
-
-
+pacman -S --needed ucrt64/mingw-w64-ucrt-x86_64-clang ucrt64/mingw-w64-ucrt-x86_64-gcc vim git openssh tar gzip bzip2 xz cpio
 
 
 cat >> ~/.inputrc << EOF
