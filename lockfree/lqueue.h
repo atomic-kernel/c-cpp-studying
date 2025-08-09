@@ -1,10 +1,26 @@
 /*
- * Lockfree queue:
- * 1. The caller must ensure that nodes and heads will never be "free"
- *    For example, let them allocate from the static memory
- * 2. The caller is not allowed to modify the content of the node,
- *    even if it is not in the queue (Exception: Dequeue from a queue
- *                     and then enqueue into another queue is allowed)
+ * Lock-free queue:
+ * Allow multiple producers and consumers.
+ * lqueue_init(): init a lock-free queue
+ * lqueue_enqueue(): insert a node to the lock-free queue
+ * lqueue_dequeue(): try dequeueing a node from the lock-free queue
+ *
+ * constraint:
+ * 1. When a node is dequeued from a lock-free queue, it cannot be free,
+ * unless it can be guaranteed that all operations of other threads
+ * on this lock-free queue(including enqueue and dequeue) before this
+ * moment(lqueue_dequeue() func returns) have been completed.
+ *
+ * If dynamically freeing the nodes is required, something similar to RCU
+ * may be needed. It is recommended to reserve the memory of nodes, such as
+ * defining them as static or global variables, or allocating the memory of
+ * all nodes when initializing a lock-free queue,
+ * and freeing all nodes when destroying the lock-free queue.
+ *
+ * 2. When a node is dequeued from a lock-free queue, the content of the node
+ * itself(struct lqueue_node) cannot be modified unless the above freeing rule
+ * is met. (An exception: dequeuing a node from a lock-free queue and then enqueue
+ * it into another lock-free queue is allowed)
  */
 
 #ifndef LQUEUE_H

@@ -1,7 +1,22 @@
 /*
- * Lockfree stack:
- * The caller must ensure that nodes and heads will never be "free"
- * For example, let them allocate from the static memory
+ * Lock-free stack:
+ * Allow multiple producers and consumers.
+ * initialization: memset the stack head to 0 is ok
+ * lstack_push(): pushing a node to the lock-free stack
+ * lstack_pop(): try popping a node from the lock-free stack
+ * lstack_pop_all(): popping all nodes from the lock-free stack
+ *
+ * constraint:
+ * When nodes are popped from a lock-free stack(including lstack_pop and
+ * lstack_pop_all operations), they cannot be free, unless it can be guaranteed
+ * that all the popping operations of other threads on this lock-free stack
+ * before this moment(lstack_pop() func returns) have been completed.
+ *
+ * If dynamically freeing the nodes is required, something similar to RCU
+ * may be needed. It is recommended to reserve the memory of nodes, such as
+ * defining them as static or global variables, or allocating the memory of
+ * all nodes when initializing a lock-free stack,
+ * and freeing all nodes when destroying the lock-free stack.
  */
 
 #ifndef LSTACK_H
