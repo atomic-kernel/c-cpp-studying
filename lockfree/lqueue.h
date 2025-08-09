@@ -40,18 +40,18 @@ struct __tag_pnode {
 	size_t count;
 };
 union tag_pnode {
-		struct {
-			union {
-				struct lqueue_node *raw_p;
-				_Atomic(struct lqueue_node *) p;
-			};
-			union {
-				size_t raw_count;
-				atomic_size_t count;
-			};
+	struct {
+		union {
+			struct lqueue_node *raw_p;
+			_Atomic(struct lqueue_node *) p;
 		};
-		struct __tag_pnode raw;
-		_Atomic struct __tag_pnode atomic;
+		union {
+			size_t raw_count;
+			atomic_size_t count;
+		};
+	};
+	struct __tag_pnode raw;
+	_Atomic struct __tag_pnode atomic;
 };
 
 #ifndef UINTPTR_MAX
@@ -80,6 +80,13 @@ _Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __tag_pnode),
 #endif
 #else /* unknown bits */
 #error "unknown wordsize"
+#endif
+
+#ifndef likely
+#define likely(x)	__builtin_expect(!!(x), 1)
+#endif
+#ifndef unlikely
+#define unlikely(x)	__builtin_expect(!!(x), 0)
 #endif
 
 struct lqueue_node {
@@ -132,11 +139,11 @@ retry:
 		assert(node != old_last.raw_p);
 		old_next.raw = atomic_load_explicit(&old_last.raw_p->next.atomic, memory_order_relaxed);
 
-		if (old_next.raw_count != old_last.raw_count)
+		if (unlikely(old_next.raw_count != old_last.raw_count))
 			continue;
 		count = old_last.raw_count;
 
-		if (old_next.raw_p != (void *)q) {
+		if (unlikely(old_next.raw_p != (void *)q)) {
 			/* acquire with load last->next */
 			atomic_thread_fence(memory_order_acquire);
 			new_last.raw_p = old_next.raw_p;
@@ -159,7 +166,7 @@ retry:
 		atomic_store_explicit(&node->next.p, (struct lqueue_node *)q, memory_order_release);
 		new_next.raw_p = node;
 		new_next.raw_count = count;
-		if (atomic_compare_exchange_weak_explicit(&old_last.raw_p->next.atomic, &old_next.raw, new_next.raw, memory_order_release, memory_order_relaxed))
+		if (likely(atomic_compare_exchange_weak_explicit(&old_last.raw_p->next.atomic, &old_next.raw, new_next.raw, memory_order_release, memory_order_relaxed)))
 			break;
 	}
 
@@ -197,9 +204,9 @@ retry2:
 		assert(old_first.raw_p == old_last.raw_p);
 
 		old_next.raw = atomic_load_explicit(&old_last.raw_p->next.atomic, memory_order_relaxed);
-		if (old_next.raw_count != old_last.raw_count)
+		if (unlikely(old_next.raw_count != old_last.raw_count))
 			goto retry0;
-		if (old_next.raw_p != (void *)q) {
+		if (unlikely(old_next.raw_p != (void *)q)) {
 			atomic_thread_fence(memory_order_acquire);
 			new_last.raw_p = old_next.raw_p;
 			new_last.raw_count = old_last.raw_count + 1;
@@ -214,7 +221,7 @@ retry2:
 
 	new_first.raw_p = old_first.raw_p->next.raw_p;
 	new_first.raw_count = old_first.raw_count + 1;
-	if (!atomic_compare_exchange_weak_explicit(&q->first.atomic, &old_first.raw, new_first.raw, memory_order_release, memory_order_acquire))
+	if (unlikely(!atomic_compare_exchange_weak_explicit(&q->first.atomic, &old_first.raw, new_first.raw, memory_order_release, memory_order_acquire)))
 		goto retry1;
 	assert((uintptr_t)new_first.raw_p + 1 > 1);
 	assert(new_first.raw_p != (void *)q);
@@ -231,16 +238,17 @@ struct lqueue_node *lqueue_dequeue(struct lqueue *const q, bool *const is_empty_
 	do {
 		if (!num)
 			return NULL;
-	} while (!atomic_compare_exchange_weak_explicit(&q->num, &num, num - 1, memory_order_acquire, memory_order_relaxed));
+	} while (unlikely(!atomic_compare_exchange_weak_explicit(&q->num, &num, num - 1, memory_order_acquire, memory_order_relaxed)));
 
 	while (1) {
 		ret = __lqueue_dequeue(q);
-		if (ret == &q->dummy) {
+		if (likely(ret)) {
+			if (likely(ret != &q->dummy))
+				break;
 			assert(!q->dummy_is_free);
 			q->dummy_is_free = 1;
 			continue;
-		} else if (ret)
-			break;
+		}
 		assert(q->dummy_is_free);
 		q->dummy_is_free = 0;
 		__lqueue_enqueue(q, &q->dummy);

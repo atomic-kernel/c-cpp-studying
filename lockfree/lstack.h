@@ -80,6 +80,13 @@ _Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __lstack_head),
 #error "unknown wordsize"
 #endif
 
+#ifndef likely
+#define likely(x)	__builtin_expect(!!(x), 1)
+#endif
+#ifndef unlikely
+#define unlikely(x)	__builtin_expect(!!(x), 0)
+#endif
+
 // Return whether lstack is empty before pushing.
 static inline __attribute__((always_inline))
 bool lstack_push(struct lstack_head *const head, struct lstack_node *const node)
@@ -89,7 +96,7 @@ bool lstack_push(struct lstack_head *const head, struct lstack_node *const node)
 
 	do {
 		node->next = old_first;
-	} while (!atomic_compare_exchange_weak_explicit(pfirst, &old_first, node, memory_order_release, memory_order_relaxed));
+	} while (unlikely(!atomic_compare_exchange_weak_explicit(pfirst, &old_first, node, memory_order_release, memory_order_relaxed)));
 
 	return !old_first;
 }
@@ -117,7 +124,7 @@ struct lstack_node *lstack_pop(struct lstack_head *const head, bool *const is_em
 		 * omit acquire barrier in the case of success,
 		 * because loaded head with acquire before
 		 */
-	} while (!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_release, memory_order_acquire));
+	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_release, memory_order_acquire)));
 
 	*is_empty_after_pop = !new_head.raw_first;
 	return old_head.raw_first;
@@ -136,7 +143,7 @@ struct lstack_node *lstack_pop_all(struct lstack_head *const head)
 
 		new_head.raw_first = NULL;
 		new_head.raw_count = old_head.raw_count + 1;
-	} while (!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_acq_rel, memory_order_relaxed));
+	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_acq_rel, memory_order_relaxed)));
 
 	return old_head.raw_first;
 }
