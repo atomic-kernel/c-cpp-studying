@@ -134,10 +134,12 @@ void __lqueue_enqueue(struct lqueue *const q, struct lqueue_node *const node)
 		union tag_pnode old_next;
 		union tag_pnode new_next;
 
-		old_last.raw = atomic_load_explicit(&q->last.atomic, memory_order_acquire);
+		old_last.raw_count = atomic_load_explicit(&q->last.count, memory_order_acquire);
+		old_last.raw_p = atomic_load_explicit(&q->last.p, memory_order_relaxed);
 retry:
 		assert(node != old_last.raw_p);
-		old_next.raw = atomic_load_explicit(&old_last.raw_p->next.atomic, memory_order_relaxed);
+		old_next.raw_p = atomic_load_explicit(&old_last.raw_p->next.p, memory_order_relaxed);
+		old_next.raw_count = atomic_load_explicit(&old_last.raw_p->next.count, memory_order_relaxed);
 
 		if (unlikely(old_next.raw_count != old_last.raw_count))
 			continue;
@@ -172,7 +174,10 @@ retry:
 
 	new_last.raw_p = node;
 	new_last.raw_count = count + 1;
-	atomic_compare_exchange_strong_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_relaxed);
+	if (unlikely(!atomic_compare_exchange_strong_explicit(&q->last.atomic, &old_last.raw, new_last.raw, memory_order_release, memory_order_relaxed))) {
+		if (old_last.raw_count == new_last.raw_count)
+			assert(old_last.raw_p == new_last.raw_p);
+	}
 }
 
 // Return whether lqueue is empty before queueing.
