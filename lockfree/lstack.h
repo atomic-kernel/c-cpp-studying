@@ -108,7 +108,8 @@ struct lstack_node *lstack_pop(struct lstack_head *const head, bool *const is_em
 	struct lstack_head old_head;
 	struct lstack_head new_head;
 
-	old_head.raw = atomic_load_explicit(&head->atomic, memory_order_acquire);
+	old_head.raw_count = atomic_load_explicit(&head->count, memory_order_acquire);
+	old_head.raw_first = atomic_load_explicit(&head->first, memory_order_acquire);
 	do {
 		if (!old_head.raw_first)
 			return NULL;
@@ -121,10 +122,10 @@ struct lstack_node *lstack_pop(struct lstack_head *const head, bool *const is_em
 		new_head.raw_first = old_head.raw_first->next;
 		new_head.raw_count = old_head.raw_count + 1;
 		/*
-		 * omit acquire barrier in the case of success,
-		 * because loaded head with acquire before
+		 * Actually, we only need relaxed when success, but c standard
+		 * say: fail cannot specify stronger ordering than succ
 		 */
-	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_release, memory_order_acquire)));
+	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_acquire, memory_order_acquire)));
 
 	*is_empty_after_pop = !new_head.raw_first;
 	return old_head.raw_first;
@@ -136,14 +137,15 @@ struct lstack_node *lstack_pop_all(struct lstack_head *const head)
 	struct lstack_head old_head;
 	struct lstack_head new_head;
 
-	old_head.raw = atomic_load_explicit(&head->atomic, memory_order_relaxed);
+	old_head.raw_first = atomic_load_explicit(&head->first, memory_order_relaxed);
+	old_head.raw_count = atomic_load_explicit(&head->count, memory_order_relaxed);
 	do {
 		if (!old_head.raw_first)
 			return NULL;
 
 		new_head.raw_first = NULL;
 		new_head.raw_count = old_head.raw_count + 1;
-	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_acq_rel, memory_order_relaxed)));
+	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_acquire, memory_order_relaxed)));
 
 	return old_head.raw_first;
 }
