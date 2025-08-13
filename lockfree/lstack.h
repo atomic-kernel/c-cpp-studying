@@ -31,9 +31,9 @@
 struct lstack_node {
 	struct lstack_node *next;
 };
-struct __lstack_head {
+struct raw_lstack_head {
 	struct lstack_node *first;
-	size_t count;
+	uintptr_t count;
 };
 struct lstack_head {
 	union {
@@ -43,12 +43,12 @@ struct lstack_head {
 				_Atomic(struct lstack_node *) first;
 			};
 			union {
-				size_t raw_count;
-				atomic_size_t count;
+				uintptr_t raw_count;
+				atomic_uintptr_t count;
 			};
 		};
-		struct __lstack_head raw;
-		_Atomic struct __lstack_head atomic;
+		struct raw_lstack_head raw;
+		_Atomic struct raw_lstack_head atomic;
 	};
 };
 
@@ -62,8 +62,8 @@ _Static_assert(sizeof(struct lstack_head) == 16 && sizeof(void *) == 8 &&
 #ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16
 #warning "your platform may be not support atomic 16"
 #elif defined(__clang__) // May failed on gcc
-_Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __lstack_head),
-			(void *)(uintptr_t)_Alignof(_Atomic struct __lstack_head)),
+_Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct raw_lstack_head),
+			(void *)(uintptr_t)_Alignof(_Atomic struct raw_lstack_head)),
 		"lock free check failed\n");
 #endif
 #elif UINTPTR_MAX == UINT32_MAX /* 32bits */
@@ -72,8 +72,8 @@ _Static_assert(sizeof(struct lstack_head) == 8 && sizeof(void *) == 4 &&
 #ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
 #warning "your platform may be not support atomic 8"
 #else
-_Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __lstack_head),
-			(void *)(uintptr_t)_Alignof(_Atomic struct __lstack_head)),
+_Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct raw_lstack_head),
+			(void *)(uintptr_t)_Alignof(_Atomic struct raw_lstack_head)),
 		"lock free check failed\n");
 #endif
 #else /* unknown bits */
@@ -91,12 +91,11 @@ _Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct __lstack_head),
 static inline __attribute__((always_inline))
 bool lstack_push(struct lstack_head *const head, struct lstack_node *const node)
 {
-	_Atomic(struct lstack_node *) *pfirst = &head->first;
-	struct lstack_node *old_first = atomic_load_explicit(pfirst, memory_order_relaxed);
+	struct lstack_node *old_first = atomic_load_explicit(&head->first, memory_order_relaxed);
 
 	do {
 		node->next = old_first;
-	} while (unlikely(!atomic_compare_exchange_weak_explicit(pfirst, &old_first, node, memory_order_release, memory_order_relaxed)));
+	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->first, &old_first, node, memory_order_release, memory_order_relaxed)));
 
 	return !old_first;
 }
@@ -105,13 +104,13 @@ bool lstack_push(struct lstack_head *const head, struct lstack_node *const node)
 static inline __attribute__((always_inline))
 struct lstack_node *lstack_pop(struct lstack_head *const head, bool *const is_empty_after_pop)
 {
-	struct lstack_head old_head;
-	struct lstack_head new_head;
+	struct raw_lstack_head raw_old_head;
+	struct raw_lstack_head raw_new_head;
 
-	old_head.raw_count = atomic_load_explicit(&head->count, memory_order_acquire);
-	old_head.raw_first = atomic_load_explicit(&head->first, memory_order_acquire);
+	raw_old_head.count = atomic_load_explicit(&head->count, memory_order_acquire);
+	raw_old_head.first = atomic_load_explicit(&head->first, memory_order_acquire);
 	do {
-		if (!old_head.raw_first)
+		if (!raw_old_head.first)
 			return NULL;
 
 		/*
@@ -119,35 +118,34 @@ struct lstack_node *lstack_pop(struct lstack_head *const head, bool *const is_em
 		 * otherwise, accessing first->next is dangerous,
 		 * which may cause a segment fault
 		 */
-		new_head.raw_first = old_head.raw_first->next;
-		new_head.raw_count = old_head.raw_count + 1;
+		raw_new_head.first = raw_old_head.first->next;
+		raw_new_head.count = raw_old_head.count + 1;
 		/*
 		 * Actually, we only need relaxed when success, but c standard
 		 * say: fail cannot specify stronger ordering than succ
 		 */
-	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_acquire, memory_order_acquire)));
+	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->atomic, &raw_old_head, raw_new_head, memory_order_acquire, memory_order_acquire)));
 
-	*is_empty_after_pop = !new_head.raw_first;
-	return old_head.raw_first;
+	*is_empty_after_pop = !raw_new_head.first;
+	return raw_old_head.first;
 }
 
 static inline __attribute__((always_inline))
 struct lstack_node *lstack_pop_all(struct lstack_head *const head)
 {
-	struct lstack_head old_head;
-	struct lstack_head new_head;
+	struct raw_lstack_head raw_old_head;
+	struct raw_lstack_head raw_new_head;
 
-	old_head.raw_first = atomic_load_explicit(&head->first, memory_order_relaxed);
-	old_head.raw_count = atomic_load_explicit(&head->count, memory_order_relaxed);
+	raw_old_head.first = atomic_load_explicit(&head->first, memory_order_relaxed);
+	raw_old_head.count = atomic_load_explicit(&head->count, memory_order_relaxed);
 	do {
-		if (!old_head.raw_first)
+		if (!raw_old_head.first)
 			return NULL;
 
-		new_head.raw_first = NULL;
-		new_head.raw_count = old_head.raw_count + 1;
-	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->atomic, &old_head.raw, new_head.raw, memory_order_acquire, memory_order_relaxed)));
+		raw_new_head.first = NULL;
+		raw_new_head.count = raw_old_head.count + 1;
+	} while (unlikely(!atomic_compare_exchange_weak_explicit(&head->atomic, &raw_old_head, raw_new_head, memory_order_acquire, memory_order_relaxed)));
 
-	return old_head.raw_first;
+	return raw_old_head.first;
 }
-
 #endif
