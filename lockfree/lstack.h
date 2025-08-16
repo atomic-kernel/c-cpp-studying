@@ -27,6 +27,9 @@
 #include <stdalign.h>
 #include <stdint.h>
 #include <assert.h>
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ <= 201710L
+#include <stdbool.h>
+#endif
 
 struct lstack_node {
 	struct lstack_node *next;
