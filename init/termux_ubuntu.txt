@@ -1,6 +1,4 @@
-pkg install
-apt --no-install-recommends --auto-remove --purge -y full-upgrade
-pkg install
+termux-change-repo
 apt --no-install-recommends --auto-remove --purge -y full-upgrade
 apt --no-install-recommends -y install proot wget
 
@@ -122,3 +120,4 @@ DISPLAY=:2 xfce4-session
 # VNC客户端画质设为中
 # 退出
 vncserver -kill :2
+
