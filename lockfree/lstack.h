@@ -41,16 +41,9 @@ struct raw_lstack_head {
 struct lstack_head {
 	union {
 		struct {
-			union {
-				struct lstack_node *raw_first;
-				_Atomic(struct lstack_node *) first;
-			};
-			union {
-				uintptr_t raw_count;
-				atomic_uintptr_t count;
-			};
+			_Atomic(struct lstack_node *) first;
+			atomic_uintptr_t count;
 		};
-		struct raw_lstack_head raw;
 		_Atomic struct raw_lstack_head atomic;
 	};
 };
