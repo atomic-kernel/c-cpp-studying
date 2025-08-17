@@ -233,9 +233,8 @@ retry1:
 label_continue:
 	raw_new_first.p = next;
 	raw_new_first.count = raw_old_first.count + 1;
-	// Actually, we can use relaxed when success,
-	// but C standard say "fail cannot specify stronger ordering than succ"
-	if (unlikely(!atomic_compare_exchange_weak_explicit(&q->first.atomic, &raw_old_first, raw_new_first, memory_order_acquire, memory_order_acquire)))
+	// We need release when success because we need to make sure that writing q->last can be seen.
+	if (unlikely(!atomic_compare_exchange_weak_explicit(&q->first.atomic, &raw_old_first, raw_new_first, memory_order_release, memory_order_acquire)))
 		goto retry0;
 	atomic_store_explicit(&raw_old_first.p->next.p, (void *)-1, memory_order_relaxed); // for debug
 	assert((uintptr_t)raw_new_first.p + 1 > 1);
