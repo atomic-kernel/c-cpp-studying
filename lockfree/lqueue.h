@@ -198,9 +198,10 @@ struct lqueue_node *raw_lqueue_dequeue(struct raw_lqueue *const q)
 	struct raw_tag_pnode raw_new_first;
 	struct raw_tag_pnode raw_old_last;
 
-	raw_old_first.p = atomic_load_explicit(&q->first.p, memory_order_relaxed);
 	// 此处其实用relaxed就可以了，主要是为了防止返回虚假的空
 	raw_old_first.count = atomic_load_explicit(&q->first.count, memory_order_acquire);
+	// 保证old_first.p读取在old_firtst.count之后，可以方便编码，实际非必须
+	raw_old_first.p = atomic_load_explicit(&q->first.p, memory_order_relaxed);
 retry0:
 	// 1. 必须保证先读取last.count，再读取last->next，以保证推进正确性
 	// 2. 处理来自enqueue的release
@@ -223,8 +224,9 @@ retry1:
 		if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &raw_old_last, raw_new_last, memory_order_release, memory_order_acquire)) {
 			assert((uintptr_t)raw_new_last.p + 1 > 1);
 			goto label_continue;
+		} else if (raw_old_last.count == raw_old_first.count) {
+			assert(raw_old_last.p == raw_old_first.p);
 		}
-		raw_old_first.p = atomic_load_explicit(&q->first.p, memory_order_relaxed);
 		goto retry1;
 	}
 
@@ -233,7 +235,7 @@ label_continue:
 	raw_new_first.count = raw_old_first.count + 1;
 	if (unlikely(!atomic_compare_exchange_weak_explicit(&q->first.atomic, &raw_old_first, raw_new_first, memory_order_release, memory_order_acquire)))
 		goto retry0;
-	atomic_store_explicit(&raw_old_first.p->next.p, NULL, memory_order_relaxed); // for debug
+	atomic_store_explicit(&raw_old_first.p->next.p, (void *)-1, memory_order_relaxed); // for debug
 	assert((uintptr_t)raw_new_first.p + 1 > 1);
 	assert(raw_new_first.p != (void *)q);
 	return raw_old_first.p;
