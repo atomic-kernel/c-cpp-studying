@@ -33,9 +33,15 @@ retry:
 		raw.low = i + 7;
 		raw.high = i;
 		++val;
+#ifdef DEBUG
+		atomic_signal_fence(memory_order_release);
+#endif
 		atomic_store_explicit(&obj0.atomic, raw, memory_order_release);
 		while (1) {
 			raw = atomic_load_explicit(&obj0.atomic, memory_order_acquire);
+#ifdef DEBUG
+			atomic_signal_fence(memory_order_acquire);
+#endif
 			if (raw.high != i) {
 				assert(val == raw.high + 5);
 				assert(raw.high == ++i);
@@ -55,10 +61,16 @@ static void *thread0_1(void *arg)
 	while (1) {
 		while ((tmp2 = atomic_load_explicit(&obj0.high, memory_order_acquire)) == i)
 			;
+#ifdef DEBUG
+		atomic_signal_fence(memory_order_acquire);
+#endif
 		assert(val == tmp2 + 5);
 		assert(tmp2 == ++i);
 		++val;
 		++i;
+#ifdef DEBUG
+		atomic_signal_fence(memory_order_release);
+#endif
 		atomic_store_explicit(&obj0.high, i, memory_order_release);
 	}
 	__builtin_unreachable();
