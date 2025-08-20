@@ -18,8 +18,13 @@ union test {
 	_Atomic struct raw atomic;
 };
 
-uintptr_t val = 5;
-union test obj0 = { {0, 0} };
+struct TT {
+	uintptr_t val0;
+	uint64_t pad[4096];
+	union test obj0;
+	uint64_t pad1[4096];
+	uintptr_t val1;
+} tt;
 atomic_size_t count;
 
 static void *thread0_0(void *arg)
@@ -30,22 +35,24 @@ static void *thread0_0(void *arg)
 retry:
 	for (size_t t = 0; t < 10000; ++t) {
 		++i;
-		raw.low = i + 7;
+		raw.low = i * 13241234 + 0xffee00000;
 		raw.high = i;
-		++val;
+		tt.val0 = i * 31415926 + 0xff0000000;
+		tt.val1 = i * 32356256 + 0xee0000000;
 #ifdef DEBUG
 		atomic_signal_fence(memory_order_release);
 #endif
-		atomic_store_explicit(&obj0.atomic, raw, memory_order_release);
+		atomic_store_explicit(&tt.obj0.atomic, raw, memory_order_release);
 		while (1) {
-			raw = atomic_load_explicit(&obj0.atomic, memory_order_acquire);
+			raw = atomic_load_explicit(&tt.obj0.atomic, memory_order_acquire);
 #ifdef DEBUG
 			atomic_signal_fence(memory_order_acquire);
 #endif
 			if (raw.high != i) {
-				assert(val == raw.high + 5);
 				assert(raw.high == ++i);
-				assert(raw.low == i + 6);
+				assert(raw.low == (i - 1) * 13241234 + 0xffee00000);
+				assert(tt.val0 == i * 31415926 + 0xff0000000);
+				assert(tt.val1 == i * 32356256 + 0xee0000000);
 				break;
 			}
 		}
@@ -59,19 +66,21 @@ static void *thread0_1(void *arg)
 	uintptr_t i = 0;
 	uintptr_t tmp2;
 	while (1) {
-		while ((tmp2 = atomic_load_explicit(&obj0.high, memory_order_acquire)) == i)
+		while ((tmp2 = atomic_load_explicit(&tt.obj0.high, memory_order_acquire)) == i)
 			;
 #ifdef DEBUG
 		atomic_signal_fence(memory_order_acquire);
 #endif
-		assert(val == tmp2 + 5);
 		assert(tmp2 == ++i);
-		++val;
+		assert(tt.val0 == i * 31415926 + 0xff0000000);
+		assert(tt.val1 == i * 32356256 + 0xee0000000);
 		++i;
+		tt.val0 = i * 31415926 + 0xff0000000;
+		tt.val1 = i * 32356256 + 0xee0000000;
 #ifdef DEBUG
 		atomic_signal_fence(memory_order_release);
 #endif
-		atomic_store_explicit(&obj0.high, i, memory_order_release);
+		atomic_store_explicit(&tt.obj0.high, i, memory_order_release);
 	}
 	__builtin_unreachable();
 }
