@@ -123,7 +123,6 @@ void lqueue_init(struct lqueue *const q)
 static inline __attribute__((always_inline))
 void raw_lqueue_enqueue(struct raw_lqueue *const q, struct lqueue_node *const node)
 {
-	uintptr_t old_last_count;
 	struct raw_tag_pnode raw_old_last;
 	struct raw_tag_pnode raw_new_last;
 	struct raw_tag_pnode raw_old_next;
@@ -140,13 +139,13 @@ retry1:
 	assert(node != raw_old_last.p);
 	// 必须保证先读取count，再读取next，以保证推进正确
 	raw_old_next.p = atomic_load_explicit(&raw_old_last.p->next.p, memory_order_relaxed);
-	old_last_count = raw_old_last.count;
 
 	if (unlikely(raw_old_next.p != (void *)q)) {
+		assert(raw_old_next.p != node);
 		/* acquire with load last->next */
 		atomic_thread_fence(memory_order_acquire);
 		raw_new_last.p = raw_old_next.p;
-		raw_new_last.count = old_last_count + 1;
+		raw_new_last.count = raw_old_last.count + 1;
 		if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &raw_old_last, raw_new_last, memory_order_release, memory_order_acquire)) {
 			/* not NULL or (void *)-1 */
 			assert((uintptr_t)raw_new_last.p + 1 > 1);
@@ -161,15 +160,15 @@ retry1:
 	 * node->next.count = new_count
 	 * node->next.p = q
 	 */ 
-	atomic_store_explicit(&node->next.count, old_last_count + 1, memory_order_release);
+	atomic_store_explicit(&node->next.count, raw_old_last.count + 1, memory_order_release);
 	atomic_store_explicit(&node->next.p, (void *)q, memory_order_release);
-	raw_new_next.count = raw_old_next.count = old_last_count;
+	raw_new_next.count = raw_old_next.count = raw_old_last.count;
 	raw_new_next.p = node;
 	if (unlikely(!atomic_compare_exchange_weak_explicit(&raw_old_last.p->next.atomic, &raw_old_next, raw_new_next, memory_order_release, memory_order_relaxed)))
 		goto retry0;
 
 	raw_new_last.p = node;
-	raw_new_last.count = old_last_count + 1;
+	raw_new_last.count = raw_old_last.count + 1;
 	// 用strong防止返回虚假的空
 	if (unlikely(!atomic_compare_exchange_strong_explicit(&q->last.atomic, &raw_old_last, raw_new_last, memory_order_release, memory_order_relaxed))) {
 		if (raw_old_last.count == raw_new_last.count)
