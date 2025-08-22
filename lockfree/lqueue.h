@@ -50,16 +50,9 @@ struct raw_tag_pnode {
 };
 union tag_pnode {
 	struct {
-		union {
-			struct lqueue_node *raw_p;
-			_Atomic(struct lqueue_node *) p;
-		};
-		union {
-			uintptr_t raw_count;
-			atomic_uintptr_t count;
-		};
+		_Atomic(struct lqueue_node *) p;
+		atomic_uintptr_t count;
 	};
-	struct raw_tag_pnode raw;
 	_Atomic struct raw_tag_pnode atomic;
 };
 
@@ -108,13 +101,16 @@ static inline __attribute__((always_inline))
 void raw_lqueue_init(struct raw_lqueue *const q, struct lqueue_node *const first)
 {
 	assert((void *)q != first);
+	atomic_init(&q->first.p, first);
+	atomic_init(&q->first.count, 0);
+	atomic_init(&q->last.p, first);
+	atomic_init(&q->last.count, 0);
 	/*
 	 * use q as last->next instead of NULL,
 	 * This is to handle ABA issues that may arise between multiple queues
 	 */
-	first->next.raw_p = (void *)q;
-	q->first.raw_count = q->last.raw_count = first->next.raw_count = 0;
-	q->first.raw_p = q->last.raw_p = first;
+	atomic_init(&first->next.p, (void *)q);
+	atomic_init(&first->next.count, 0);
 }
 static inline __attribute__((always_inline))
 void lqueue_init(struct lqueue *const q)
@@ -224,9 +220,9 @@ retry1:
 		if (atomic_compare_exchange_weak_explicit(&q->last.atomic, &raw_old_last, raw_new_last, memory_order_release, memory_order_acquire)) {
 			assert((uintptr_t)raw_new_last.p + 1 > 1);
 			goto label_continue;
-		} else if (raw_old_last.count == raw_old_first.count) {
-			assert(raw_old_last.p == raw_old_first.p);
 		}
+		if (raw_old_last.count == raw_old_first.count)
+			assert(raw_old_last.p == raw_old_first.p);
 		goto retry1;
 	}
 
