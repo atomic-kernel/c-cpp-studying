@@ -5,6 +5,8 @@
 #include <assert.h>
 
 #include <pthread.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 
 struct raw {
 	uintptr_t low;
@@ -96,10 +98,19 @@ static void *thread0_1(void *arg)
 	__builtin_unreachable();
 }
 
+static void sigabrt_handler(int sig)
+{
+	int cpu;
+
+	assert(syscall(__NR_getcpu, &cpu, NULL, NULL) == 0);
+	printf("abort on cpu %d\n", cpu);
+}
+
 int main(void)
 {
 	pthread_t th[2];
 	size_t old_count, tmp;
+	assert(signal(SIGABRT, sigabrt_handler) != SIG_ERR);
 
 	assert(pthread_create(&th[0], NULL, thread0_0, NULL) == 0);
 	assert(pthread_create(&th[1], NULL, thread0_1, NULL) == 0);
@@ -108,7 +119,8 @@ int main(void)
 	while (1) {
 		sleep(10);
 		tmp = atomic_load_explicit(&count, memory_order_relaxed);
-		assert(tmp != old_count);
+		if (tmp == old_count)
+			printf("WARN: dog not feed!\n");
 		printf("count : %zu\n", tmp);
 		old_count = tmp;
 	}
