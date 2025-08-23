@@ -40,13 +40,13 @@ retry:
 		tt.val0 = i * 31415926 + 0xff0000000;
 		tt.val1 = i * 32356256 + 0xee0000000;
 #ifdef DEBUG
-		atomic_signal_fence(memory_order_release);
+		__asm__ volatile ("":::"memory");
 #endif
 		atomic_store_explicit(&tt.obj0.atomic, raw, memory_order_release);
 		while (1) {
 			raw = atomic_load_explicit(&tt.obj0.atomic, memory_order_acquire);
 #ifdef DEBUG
-			atomic_signal_fence(memory_order_acquire);
+			__asm__ volatile ("":::"memory");
 #endif
 			if (raw.high != i) {
 				assert(raw.high == ++i);
@@ -69,7 +69,7 @@ static void *thread0_1(void *arg)
 		while ((tmp2 = atomic_load_explicit(&tt.obj0.high, memory_order_acquire)) == i)
 			;
 #ifdef DEBUG
-		atomic_signal_fence(memory_order_acquire);
+		__asm__ volatile ("":::"memory");
 #endif
 		assert(tmp2 == ++i);
 		assert(tt.val0 == i * 31415926 + 0xff0000000);
@@ -78,7 +78,7 @@ static void *thread0_1(void *arg)
 		tt.val0 = i * 31415926 + 0xff0000000;
 		tt.val1 = i * 32356256 + 0xee0000000;
 #ifdef DEBUG
-		atomic_signal_fence(memory_order_release);
+		__asm__ volatile ("":::"memory");
 #endif
 		atomic_store_explicit(&tt.obj0.high, i, memory_order_release);
 	}
