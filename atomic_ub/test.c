@@ -76,7 +76,7 @@ static void *thread0_1(void *arg)
 			__asm__ volatile ("":::"memory");
 			tmp2 = atomic_load_explicit(&tt.obj0.high, memory_order_acquire);
 			__asm__ volatile ("":::"memory");
-			for (size_t i2 = 0; i2 < 20; ++i2) {
+			for (size_t i2 = 0; i2 < 1; ++i2) {
 				__asm__ volatile (""::"r"(tt.val0):);
 				__asm__ volatile (""::"r"(tt.val1):);
 			}
@@ -87,6 +87,9 @@ static void *thread0_1(void *arg)
 		assert(tmp2 == ++i);
 		assert(tt.val0 == i * 31415926 + 0xff0000000);
 		assert(tt.val1 == i * 32356256 + 0xee0000000);
+		atomic_store_explicit(&tt.obj0.high, i, memory_order_relaxed);
+		atomic_store_explicit(&tt.obj0.high, i, memory_order_relaxed);
+		atomic_store_explicit(&tt.obj0.high, i, memory_order_relaxed);
 		++i;
 		tt.val0 = i * 31415926 + 0xff0000000;
 		tt.val1 = i * 32356256 + 0xee0000000;
