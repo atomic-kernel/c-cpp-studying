@@ -19,11 +19,11 @@ union test {
 };
 
 struct TT {
-	uintptr_t val0;
+	volatile uintptr_t val0;
 	uint64_t pad[4096];
 	union test obj0;
 	uint64_t pad1[4096];
-	uintptr_t val1;
+	volatile uintptr_t val1;
 } tt;
 atomic_size_t count;
 
@@ -66,8 +66,19 @@ static void *thread0_1(void *arg)
 	uintptr_t i = 0;
 	uintptr_t tmp2;
 	while (1) {
-		while ((tmp2 = atomic_load_explicit(&tt.obj0.high, memory_order_acquire)) == i)
-			;
+		do {
+			for (size_t i2 = 0; i2 < 20; ++i2) {
+				__asm__ volatile (""::"r"(tt.val0):);
+				__asm__ volatile (""::"r"(tt.val1):);
+			}
+			__asm__ volatile ("":::"memory");
+			tmp2 = atomic_load_explicit(&tt.obj0.high, memory_order_acquire);
+			__asm__ volatile ("":::"memory");
+			for (size_t i2 = 0; i2 < 20; ++i2) {
+				__asm__ volatile (""::"r"(tt.val0):);
+				__asm__ volatile (""::"r"(tt.val1):);
+			}
+		} while (tmp2 == i);
 #ifdef DEBUG
 		__asm__ volatile ("":::"memory");
 #endif
