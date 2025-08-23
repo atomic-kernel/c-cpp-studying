@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source "$(dirname "${BASH_SOURCE[0]}")/clang-option"
+source "${BASH_SOURCE[0]%/*}/clang-option"
 
 clang -Xclang -pic-level -Xclang 0 -fno-addrsig -fuse-ld=lld -Wno-unused-command-line-argument "${args[@]}" "$@"

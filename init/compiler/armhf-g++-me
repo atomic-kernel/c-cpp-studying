@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source "$(dirname "${BASH_SOURCE[0]}")/g++-option"
+source "${BASH_SOURCE[0]%/*}/g++-option"
 
 arm-linux-gnueabihf-g++ "${args[@]}" "$@"

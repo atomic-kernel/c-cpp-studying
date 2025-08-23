@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source "$(dirname "${BASH_SOURCE[0]}")/clang++-option"
+source "${BASH_SOURCE[0]%/*}/clang++-option"
 
 clang++ --target=arm-linux-gnueabihf -fno-addrsig -fuse-ld=lld -Wno-unused-command-line-argument "${args[@]}" "$@"
