@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source /bin/gcc-option
+source "$(dirname "${BASH_SOURCE[0]}")/gcc-option"
 
-gcc-15 "${args[@]}" "$@"
+gcc "${args[@]}" "$@"

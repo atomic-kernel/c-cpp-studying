@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source /bin/g++-option
+source "$(dirname "${BASH_SOURCE[0]}")/g++-option"
 
-aarch64-linux-gnu-g++-15 "${args[@]}" "$@"
+aarch64-linux-gnu-g++ "${args[@]}" "$@"

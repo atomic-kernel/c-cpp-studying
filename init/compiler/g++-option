@@ -4,7 +4,7 @@ args=(
 # -fno-unwind-tables
 # -fno-asynchronous-unwind-tables
 # -fno-exceptions
--fjump-tables
+#-fjump-tables
 -fbit-tests
 -fno-strict-volatile-bitfields
 -fdelete-dead-exceptions
@@ -58,33 +58,33 @@ args=(
 -fipa-pta
 -fdevirtualize-at-ltrans
 -fmerge-all-constants
--funroll-loops
--funroll-all-loops
+#-funroll-loops
+#-funroll-all-loops
 
 
 
 # math相关
 -fno-float-store
 -ffp-contract=fast
--ffast-math
-# fast-math enable:
--fno-math-errno
-# -funsafe-math-optimizations: 链接器也需要这个选项，会链接到crtfastmath.o，设置mxcsr
--funsafe-math-optimizations
--ffinite-math-only
--fno-rounding-math
--fno-signaling-nans
--fcx-limited-range
 -fexcess-precision=fast
+## -ffast-math
+# fast-math enable:
+## -fno-math-errno
+# -funsafe-math-optimizations: 链接器也需要这个选项，会链接到crtfastmath.o，设置mxcsr
+## -funsafe-math-optimizations
+## -ffinite-math-only
+## -fno-rounding-math
+## -fno-signaling-nans
+## -fcx-limited-range
 # unsafe-math-optimizations enables:
--fno-signed-zeros
--fno-trapping-math
--fassociative-math
--freciprocal-math
+## -fno-signed-zeros
+## -fno-trapping-math
+## -fassociative-math
+## -freciprocal-math
 
 
 
 # other
--std=gnu++23 -D_GNU_SOURCE -g0 -Ofast -Wall -Wextra -Wshadow
+-std=gnu++23 -D_GNU_SOURCE -g0 -O3 -Wall -Wextra -Wshadow
 # -Wstrict-prototypes // C only
 )
