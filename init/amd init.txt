@@ -17,6 +17,12 @@ x10
 #### avx512 enable 防掉压 level1 media load boostist
 -43 -43 -30 -50 -42 -40 √
 -43 -43 -30 -50 -45 -40 ×
+core0 43x 40x 38
+core1 40 43
+core2 28x 25x 22
+core3 38x 35x 32
+core4 40x 35x 32
+core5 45x 42
 
 ftpm -> disable
 核显 -> disable
@@ -161,6 +167,7 @@ bcdedit /set {0cb3b571-2f2e-4343-a879-d86a476d7215} loadoptions DISABLE-LSA-ISO,
 bcdedit /set vsmlaunchtype off
 bcdedit /set {0cb3b571-2f2e-4343-a879-d86a476d7215} device partition=X:
 mountvol X: /d
+
 
 
 
