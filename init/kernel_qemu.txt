@@ -66,9 +66,9 @@ ip link set br0 up
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 #brctl addif br0 eth0
 #iptables -I FORWARD -m physdev --physdev-is-bridged -j ACCEPT
-ip tuntap add user 0 mode tap
-ip link set dev tap0 promisc off up
-brctl addif br0 tap0
+#ip tuntap add user 0 mode tap
+#ip link set dev tap0 promisc off up
+#brctl addif br0 tap0
 
 qemu-system-aarch64 \
  -M virt \
