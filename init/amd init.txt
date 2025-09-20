@@ -18,8 +18,8 @@ x10
 -43 -43 -30 -50 -42 -40 √
 -43 -43 -30 -50 -45 -40 ×
 core0 43x 40x 38
-core1 40 43
-core2 28x 25x 22
+core1 40 43x 38
+core2 28x 25x 22x 17
 core3 38x 35x 32
 core4 40x 35x 32
 core5 45x 42
@@ -173,6 +173,7 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Mem
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverrideMask /t REG_DWORD /d 3 /f
 
 https://support.microsoft.com/en-gb/topic/kb4074629-understanding-speculationcontrol-powershell-script-output-fd70a80a-a63f-e539-cda5-5be4c9e67c04
+
 
 
 
