@@ -70,9 +70,8 @@ iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 #ip link set dev tap0 promisc off up
 #brctl addif br0 tap0
 
-qemu-system-aarch64 \
- -M virt \
- -cpu neoverse-v1 \
+qemu-system-arm -M virt -cpu cortex-a15 \
+qemu-system-aarch64 -M virt -cpu neoverse-v1 \
  -smp "$(nproc)" \
  -m 4g \
  -nographic \
