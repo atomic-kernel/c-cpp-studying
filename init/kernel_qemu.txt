@@ -106,3 +106,29 @@ route add default gw 192.168.101.1
 /usr/sbin/sshd &
 
 ssh -t root@192.168.101.2 /bin/env -i TERM=xterm-256color /bin/login -f root
+
+# x86 uefi
+apt --no-install-recommends install qemu-system-gui ovmf
+
+# 编译内核
+CONFIG_EFI=y
+CONFIG_EFI_STUB=y
+CONFIG_CMDLINE="earlycon=efifb console=efifb0"
+
+# 构建disk.img
+dd if=/dev/zero of=disk.img bs=10M count=50
+parted disk.img
+parted disk.imgm klabel gpt
+parted disk.img mkpart uefi fat32 2048s 206848s
+partx -a -v disk.img
+mkfs.fat -F 32 /dev/loop0p1
+mount /dev/loop0p1 uefi/
+mkdir -p uefi/EFI/Boot/
+cp bzImage uefi/EFI/Boot/bootx64.efi
+umount uefi
+sync
+
+# 启动
+qemu-system-x86_64 -accel kvm -cpu host -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd -drive if=pflash,format=raw,file=/usr/share/OVMF/OVMF_VARS_4M.fd -smp "$(nproc)" -m 4g -drive file=/root/qemu/disk.img,format=raw
+
+qemu-system-x86_64 -accel kvm -cpu host -nographic -smp 1 -m 2g -kernel bzImage -drive file=disk.ext4,format=raw -append 'console=ttyS0 root=/dev/sda ro init=/a.out'
