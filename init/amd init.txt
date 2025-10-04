@@ -34,6 +34,9 @@ global c-state -> disable
 opcache control -> enable
 corrector branch predictor -> enable
 pause delay -> auto (pause指令等待cycles数)
+AMD Variable Protection -> disable
+Prochot VRM Throttling -> disable
+Peak Current Control -> disable
 
 ## mem
 ai cache boost -> disabled
@@ -173,6 +176,7 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Mem
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverrideMask /t REG_DWORD /d 3 /f
 
 https://support.microsoft.com/en-gb/topic/kb4074629-understanding-speculationcontrol-powershell-script-output-fd70a80a-a63f-e539-cda5-5be4c9e67c04
+
 
 
 
