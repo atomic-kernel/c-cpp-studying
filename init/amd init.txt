@@ -48,6 +48,14 @@ gear down mode -> diable
 fclk -> 1/3
 uclk == memclk
 memory cortext restore（关闭后增加开机时间） -> disable
+稳定版本：
+EXPO II + 
+tCL -> 34
+tRFC -> 660
+tREFI -> 65535
+内存电压 -> 1.40
+CPU VDDIO -> 1.37
+
 DRAM VDD -> 1.47
 DRAM VDDQ == DRAM VDD
 cpu soc voltage(uclk相关) -> 1.26
@@ -176,6 +184,7 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Mem
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverrideMask /t REG_DWORD /d 3 /f
 
 https://support.microsoft.com/en-gb/topic/kb4074629-understanding-speculationcontrol-powershell-script-output-fd70a80a-a63f-e539-cda5-5be4c9e67c04
+
 
 
 
