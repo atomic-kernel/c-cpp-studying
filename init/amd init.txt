@@ -9,11 +9,18 @@ motherboard
 x10
 +200
 #### avx512 disable 防掉压 level1:
-(-8) -43 -43 -20 -50 -49 -20
+prime-95(-8) -43 -43 -20 -50 -49 -20
 -50 -50 -20 -50 -50 -20 x
--43 -43 -30 -50 -49 -40 √
+r23: -43 -43 -30 -50 -49 -40 √
 -43 -43 -30 -50 -49 -45 ×
 -45 -45 -35 -50 -50 -40 ×
+qemu:
+43x 40 41 42
+43x 40 41 42
+30x 25 27 28 29x
+45x 42x 41x 40x 38x 37x 36(25min)
+45x 40x 38x 37x 36(20min)
+42
 #### avx512 enable 防掉压 level1 media load boostist
 -43 -43 -30 -50 -42 -40 √
 -43 -43 -30 -50 -45 -40 ×
@@ -184,6 +191,7 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Mem
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverrideMask /t REG_DWORD /d 3 /f
 
 https://support.microsoft.com/en-gb/topic/kb4074629-understanding-speculationcontrol-powershell-script-output-fd70a80a-a63f-e539-cda5-5be4c9e67c04
+
 
 
 
