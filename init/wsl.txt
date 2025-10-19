@@ -12,11 +12,13 @@ apt --no-install-recommends --auto-remove --purge install docker-cli
 [Service]
 Environment="HTTP_PROXY=http://proxy.example.com:80"
 Environment="HTTPS_PROXY=https://proxy.example.com:443"
-Environment="NO_PROXY=localhost,127.0.0.1,docker-registry.example.com,.corp"
+Environment="NO_PROXY=xxx"
 ```
 systemctl daemon-reload
 systemctl restart docker
-3. docker pull debian:experimental
+3. 
+docker pull debian:experimental
+docker pull debian:unstable-slim
 ## 打包rootfs.tar，方法1：
 4. docker image save -o debain_image.tar debian
 5. debain_image.tar 进一步
