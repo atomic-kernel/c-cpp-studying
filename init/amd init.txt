@@ -15,9 +15,9 @@ r23: -43 -43 -30 -50 -49 -40 √
 -43 -43 -30 -50 -49 -45 ×
 -45 -45 -35 -50 -50 -40 ×
 qemu:
-43x 40 41 42
+43x 42x 40 41(35min)
 43x 40 41 42 (25min)
-30x 29x 28x 25 27
+30x 29x 28x 25 27x 26
 45x 42x 41x 40x 38x 37x 36(25min)
 45x 40x 38x 37x 36(20min)
 42 45
@@ -191,6 +191,7 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Mem
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverrideMask /t REG_DWORD /d 3 /f
 
 https://support.microsoft.com/en-gb/topic/kb4074629-understanding-speculationcontrol-powershell-script-output-fd70a80a-a63f-e539-cda5-5be4c9e67c04
+
 
 
 
