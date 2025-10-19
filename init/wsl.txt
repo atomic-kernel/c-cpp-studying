@@ -4,7 +4,9 @@ wsl --version
 wsl --set-default-version 2
 
 # Debian 安装包获取：
-1. 安装docker： apt --no-install-recommends --auto-remove --purge install docker.io
+1. 安装docker： 
+apt --no-install-recommends --auto-remove --purge install docker.io
+apt --no-install-recommends --auto-remove --purge install docker-cli
 2. 配置docker代理：vim /usr/lib/systemd/system/docker.service
 ```
 [Service]
@@ -51,6 +53,7 @@ sed -i 's@^Types: deb@Types: deb-src deb@g' /etc/apt/sources.list.d/ubuntu.sourc
 ## Debian:
 sed -i 's#://deb.debian.org/debian#://mirrors.huaweicloud.com/debian#g' /etc/apt/sources.list.d/*
 alias apt='apt -t experimental'
+echo "alias apt='apt -t experimental'" >> ~/.bashrc
 
 # 初始化
 apt update
