@@ -1,6 +1,6 @@
 apt update
 
-clang_version="20"
+clang_version="22"
 gcc_version="15"
 
 # 常用操作
@@ -118,6 +118,8 @@ EOF
 git config --global core.editor "vim"
 git config --global user.name xxx
 git config --global user.email xxx
+
+apt --no-install-recommends -y install netcat-openbsd
 
 __http_proxy="127.0.0.1:1080"
 __socks5_proxy="127.0.0.1:1080"
