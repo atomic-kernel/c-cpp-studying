@@ -4,10 +4,14 @@ clang_version="20"
 gcc_version="15"
 
 # 常用操作
-apt --no-install-recommends -y install git git-lfs file openssh-client wget curl ca-certificates vim tar gzip xz-utils bzip2 lzma rpm2cpio cpio apt-file dpkg-dev iputils-ping bind9-dnsutils make gnome-text-editor diffutils patch gdb gdb-multiarch nano xxd bsdextrautils zip unzip iproute2 net-tools patchelf gawk sshpass ninja-build autoconf automake cmake
+apt --no-install-recommends -y install git git-lfs file openssh-client wget curl ca-certificates vim tar gzip xz-utils bzip2 lzma rpm2cpio cpio apt-file dpkg-dev iputils-ping bind9-dnsutils make diffutils patch gdb gdb-multiarch nano xxd bsdextrautils zip unzip iproute2 net-tools patchelf gawk sshpass ninja-build autoconf automake cmake
 apt-file update
 
-# bcompare
+## 文本编辑器
+apt --no-install-recommends -y install featherpad
+apt --no-install-recommends install qt6-wayland
+
+## bcompare
 # 中文GUI字体显示
 apt --no-install-recommends -y install fonts-noto-cjk-extra fonts-noto-cjk shared-mime-info
 
@@ -82,6 +86,20 @@ set cinoptions+=g0
 set hlsearch
 "set number
 EOF
+
+# .bashrc
+alias ll='ls -alF'
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
 
 sed -i '/^HISTSIZE=/d' ~/.bashrc
 sed -i '/^HISTFILESIZE=/d' ~/.bashrc
