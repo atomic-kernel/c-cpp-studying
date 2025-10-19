@@ -2,6 +2,21 @@ wsl --install --no-distribution -n
 wsl --update
 wsl --version
 wsl --set-default-version 2
+
+# Debian 安装：
+1. 安装docker： apt --no-install-recommends --auto-remove --purge install docker.io
+2. 配置docker代理：vim /usr/lib/systemd/system/docker.service
+```
+[Service]
+Environment="HTTP_PROXY=http://proxy.example.com:80"
+Environment="HTTPS_PROXY=https://proxy.example.com:443"
+Environment="NO_PROXY=localhost,127.0.0.1,docker-registry.example.com,.corp"
+```
+systemctl daemon-reload
+systemctl restart docker
+3. docker pull debian:experimental
+
+# Ubuntu 安装：
 wsl --import Ubuntu-25.04 f:\wsl\ubuntu_25_04 E:\xiazai\ubuntu-base-25.04-base-amd64.tar.gz --version 2
 # wsl -d Ubuntu-24.10 -u root --cd /root -e env -i TERM=xterm-256color /bin/su -l root
 # wsl -d Ubuntu-24.10 -u root --cd /root -e /bin/bash --login
