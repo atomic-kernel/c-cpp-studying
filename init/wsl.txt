@@ -20,11 +20,11 @@ systemctl restart docker
 docker pull debian:experimental
 docker pull debian:unstable-slim
 ## 打包rootfs.tar，方法1：
-4. docker image save -o debain_image.tar debian
-5. debain_image.tar 进一步
+4. docker image save -o debian_image.tar debian
+5. debian_image.tar 进一步提取
 ## 打包rootfs.tar，方法2：
 4. docker create --read-only d0107e067f7a  # image id (docker images -a)
-5. docker export 2a405ff59052 -o debian_rootfs2.tar  # container_id (docker ps -a)
+5. docker export 2a405ff59052 -o debian_rootfs.tar  # container_id (docker ps -a)
 
 
 # Ubuntu 安装包获取
@@ -53,9 +53,16 @@ sed -i 's@^URIs: http://security.ubuntu.com/ubuntu/@URIs: http://mirrors.huaweic
 sed -i 's@^Types: deb@Types: deb-src deb@g' /etc/apt/sources.list.d/ubuntu.sources
 
 ## Debian:
+cat > /etc/apt/sources.list.d/experimental.sources << EOF
+Types: deb deb-src
+URIs: http://deb.debian.org/debian/
+Suites: experimental
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
 sed -i 's#://deb.debian.org/debian#://mirrors.huaweicloud.com/debian#g' /etc/apt/sources.list.d/*
-alias apt='apt -t experimental'
-echo "alias apt='apt -t experimental'" >> ~/.bashrc
+#alias apt='apt -t experimental'
+#echo "alias apt='apt -t experimental'" >> ~/.bashrc
 
 # 初始化
 apt update
