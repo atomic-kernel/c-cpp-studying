@@ -5,8 +5,8 @@ wsl --set-default-version 2
 
 # Debian 安装包获取：
 1. 安装docker： 
-apt --no-install-recommends --auto-remove --purge install docker.io
-apt --no-install-recommends --auto-remove --purge install docker-cli
+apt --no-install-recommends -y install docker.io
+apt --no-install-recommends -y install docker-cli
 2. 配置docker代理：vim /usr/lib/systemd/system/docker.service
 ```
 [Service]
