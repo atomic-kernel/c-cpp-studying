@@ -20,6 +20,10 @@ apt --no-install-recommends -y install fonts-noto-cjk-extra fonts-noto-cjk share
 apt --no-install-recommends -y install gcc-${gcc_version} g++-${gcc_version} libc6-dev clang-${clang_version} lld-${clang_version} clang-format-${clang_version} llvm-${clang_version}
 ## i386
 apt --no-install-recommends -y install libc6-dev-i386 lib32gcc-${gcc_version}-dev
+# libc6-dev-i386-cross libc6-dev-i386-amd64-cross libc6-dev-amd64-i386-cross libgcc-15-dev-i386-cross lib64gcc-15-dev-i386-cross
+## x32
+apt --no-install-recommends -y install libc6-dev-x32 libx32gcc-${gcc_version}-dev
+# libc6-dev-x32-cross libx32gcc-15-dev-i386-cross libx32gcc-15-dev-amd64-cross
 ## arm64
 apt --no-install-recommends -y install gcc-${gcc_version}-aarch64-linux-gnu libc6-dev-arm64-cross g++-${gcc_version}-aarch64-linux-gnu
 ## armhf
@@ -48,16 +52,16 @@ softlink llvm-readelf-${clang_version} llvm-readelf
 softlink llvm-strip-${clang_version} llvm-strip
 link_gcc_with_prefix()
 {
-        softlink "$1"gcc-${gcc_version} "$1"gcc
-        softlink "$1"g++-${gcc_version} "$1"g++
+	softlink "$1"gcc-${gcc_version} "$1"gcc
+	softlink "$1"g++-${gcc_version} "$1"g++
 	softlink "$1"gcc-ar-${gcc_version} "$1"gcc-ar
 	softlink "$1"gcc-nm-${gcc_version} "$1"gcc-nm
-        softlink "$1"gcc-ranlib-${gcc_version} "$1"gcc-ranlib
-        softlink "$1"gcov-${gcc_version} "$1"gcov
-        softlink "$1"gcov-dump-${gcc_version} "$1"gcov-dump
-        softlink "$1"gcov-tool-${gcc_version} "$1"gcov-tool
-        softlink "$1"lto-dump-${gcc_version} "$1"lto-dump
-        softlink "$1"cpp-${gcc_version} "$1"cpp
+	softlink "$1"gcc-ranlib-${gcc_version} "$1"gcc-ranlib
+	softlink "$1"gcov-${gcc_version} "$1"gcov
+	softlink "$1"gcov-dump-${gcc_version} "$1"gcov-dump
+	softlink "$1"gcov-tool-${gcc_version} "$1"gcov-tool
+	softlink "$1"lto-dump-${gcc_version} "$1"lto-dump
+	softlink "$1"cpp-${gcc_version} "$1"cpp
 }
 link_gcc_with_prefix aarch64-linux-gnu-
 link_gcc_with_prefix arm-linux-gnueabi-
