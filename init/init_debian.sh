@@ -119,14 +119,14 @@ git config --global core.editor "vim"
 git config --global user.name xxx
 git config --global user.email xxx
 
-http_proxy="127.0.0.1:1080"
-socks5_proxy="127.0.0.1:1080"
-git config --global http.proxy "http://${http_proxy}"
-git config --global https.proxy "http://${http_proxy}"
+__http_proxy="127.0.0.1:1080"
+__socks5_proxy="127.0.0.1:1080"
+git config --global http.proxy "http://${__http_proxy}"
+git config --global https.proxy "http://${__http_proxy}"
 cat > /bin/git-proxy << EOF
 #!/bin/bash
 
-nc -x ${socks5_proxy} -X 5 "\$1" "\$2"
+nc -x ${__socks5_proxy} -X 5 "\$1" "\$2"
 EOF
 chmod +x /bin/git-proxy
 git config --global core.gitproxy /bin/git-proxy
@@ -134,9 +134,9 @@ git config --global core.gitproxy /bin/git-proxy
 cat >> ~/.ssh/config << EOF
 Host github.com
 	User git
-	ProxyCommand nc -x ${socks5_proxy} -X 5 %h %p
+	ProxyCommand nc -x ${__socks5_proxy} -X 5 %h %p
 EOF
- 
+
 
 cat >> ~/.inputrc << EOF
 
