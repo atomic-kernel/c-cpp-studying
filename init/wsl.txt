@@ -15,7 +15,13 @@ Environment="NO_PROXY=localhost,127.0.0.1,docker-registry.example.com,.corp"
 systemctl daemon-reload
 systemctl restart docker
 3. docker pull debian:experimental
-4. docker image save -o debain_rootfs.tar debian
+## 打包rootfs.tar，方法1：
+4. docker image save -o debain_image.tar debian
+5. debain_image.tar 进一步
+## 打包rootfs.tar，方法2：
+4. docker create --read-only d0107e067f7a  # image id (docker images -a)
+5. docker export 2a405ff59052 -o debian_rootfs2.tar  # container_id (docker ps -a)
+
 
 # Ubuntu 安装包获取
 https://cdimage.ubuntu.com/ubuntu-base/
@@ -27,24 +33,31 @@ wsl --import Ubuntu-25.04 f:\wsl\ubuntu_25_04 E:\xiazai\ubuntu-base-25.04-base-a
 # wsl -d Ubuntu-25.04 -u root --cd /root -e /bin/login -p -f root
 wsl -d Ubuntu-25.04 -u root --cd /root -e /bin/setsid -c -f -w /bin/login -p -f root
 
-# 老版本sources.list
+export LC_ALL=C LANG=C
+
+# 换源：
+## Ubuntu:
+### 老版本sources.list
 sed -i 's@^deb http://archive.ubuntu.com/ubuntu/@deb \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
 sed -i 's@^deb http://security.ubuntu.com/ubuntu/@deb \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
 sed -i 's@^# deb-src http://archive.ubuntu.com/ubuntu/@deb-src \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
 sed -i 's@^# deb-src http://security.ubuntu.com/ubuntu/@deb-src \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
 
-# 新版本sources.list
+### 新版本sources.list
 sed -i 's@^URIs: http://archive.ubuntu.com/ubuntu/@URIs: http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list.d/ubuntu.sources
 sed -i 's@^URIs: http://security.ubuntu.com/ubuntu/@URIs: http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list.d/ubuntu.sources
 sed -i 's@^Types: deb@Types: deb-src deb@g' /etc/apt/sources.list.d/ubuntu.sources
 
+## Debian:
+sed -i 's#://deb.debian.org/debian#://mirrors.huaweicloud.com/debian#g' /etc/apt/sources.list.d/*
+alias apt='apt -t experimental'
+
+# 初始化
 apt update
 apt --no-install-recommends -y install apt-utils
 apt --no-install-recommends -y install whiptail
 apt --no-install-recommends --auto-remove --purge -y full-upgrade
-apt --no-install-recommends -y install language-pack-zh-hans systemd-sysv kmod
-export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8
-echo "export LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8" >> "$HOME/.profile"
+apt --no-install-recommends -y install systemd-sysv kmod
 cat > /etc/wsl.conf << EOF
 [boot]
 systemd=true
@@ -54,6 +67,11 @@ initTimeout=60000
 enabled = false
 appendWindowsPath = false
 EOF
+
+alias ll='ls -alF'
+echo "alias ll='ls -alF'" >> ~/.bashrc
+apt --no-install-recommends -y install locales
+dpkg-reconfigure locales
 
 # 25.04 规避x11应用(bcompare, vscode等)打不开：
 ! grep -q '/tmp/\.X11-unix' /usr/lib/systemd/system/systemd-tmpfiles-setup.service && sed -i 's#ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev#ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev\nExecStartPost=/bin/rm -r /tmp/.X11-unix\nExecStartPost=/bin/ln -s /mnt/wslg/.X11-unix /tmp/.X11-unix#g' /usr/lib/systemd/system/systemd-tmpfiles-setup.service
