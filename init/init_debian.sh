@@ -4,7 +4,7 @@ clang_version="22"
 gcc_version="15"
 
 # 常用操作
-apt --no-install-recommends -y install git git-lfs file openssh-client wget curl ca-certificates vim tar gzip xz-utils bzip2 lzma rpm2cpio cpio apt-file dpkg-dev iputils-ping bind9-dnsutils make diffutils patch gdb gdb-multiarch nano xxd bsdextrautils zip unzip iproute2 net-tools patchelf gawk sshpass ninja-build autoconf automake cmake git-email libmailtools-perl libmime-base64-perl libauthen-sasl-perl
+apt --no-install-recommends -y install git git-lfs file openssh-client wget curl ca-certificates vim tar gzip xz-utils bzip2 lzma rpm2cpio cpio apt-file dpkg-dev iputils-ping bind9-dnsutils make diffutils patch gdb gdb-multiarch nano xxd bsdextrautils zip unzip iproute2 net-tools patchelf gawk sshpass ninja-build autoconf automake cmake git-email libmailtools-perl libmime-base64-perl libauthen-sasl-perl e2fsprogs
 apt-file update
 
 ## 文本编辑器
