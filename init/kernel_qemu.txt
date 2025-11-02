@@ -89,6 +89,8 @@ mount -t sysfs sysfs /sys
 mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
 mount -t tmpfs -o size=500M tmpfs /tmp
+mkdir -p /sys/kernel/debug
+mount -t debugfs none /sys/kernel/debug
 export PATH=/usr/local/bin:/usr/bin:/usr/sbin
 setsid -c bash
 
