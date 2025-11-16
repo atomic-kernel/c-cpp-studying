@@ -109,7 +109,7 @@ swap=0
 memory=8GB
 guiApplications=true
 #kernel=F:\\wsl\\files\\bzImage
-kernelCommandLine=mitigations=off tsx=on selinux=0 nokaslr audit=0 ima_appraise=off evm=fix nowatchdog nosoftlockup no_uaccess_flush kvm-intel.vmentry_l1d_flush=never nospec_store_bypass_disable spec_store_bypass_disable=off spec_rstack_overflow=off nospectre_v1 nospectre_v2 spectre_v2=off spectre_bhi=off spectre_v2_user=off mds=off nopti l1tf=off tsx_async_abort=off mem_encrypt=off preempt=full
+kernelCommandLine=mitigations=off tsx=on selinux=0 nokaslr audit=0 ima=off ima_appraise=off evm=fix nowatchdog nosoftlockup no_uaccess_flush kvm-intel.vmentry_l1d_flush=never nospec_store_bypass_disable spec_store_bypass_disable=off spec_rstack_overflow=off nospectre_v1 nospectre_v2 spectre_v2=off spectre_bhi=off spectre_v2_user=off mds=off nopti kpti=0 l1tf=off indirect_target_selection=off tsx_async_abort=off mem_encrypt=off hardened_usercopy=off random.trust_cpu=on random.trust_bootloader=on randomize_kstack_offset=0 vsyscall=none x2apic_phys kunit.enable=0 no5lvl preempt=full
 #debugConsole=true
 #safeMode=true
 
