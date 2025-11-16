@@ -109,7 +109,7 @@ swap=0
 memory=8GB
 guiApplications=true
 #kernel=F:\\wsl\\files\\bzImage
-kernelCommandLine=selinux=0 apparmor=0 nokaslr audit=0 ima=off evm=fix nowatchdog nosoftlockup no_debug_objects vm_debug=- debug_pagealloc=off page_poison=off schedstats=disable traceoff_after_boot split_lock_detect=off kmemleak=off debugfs=off kfence.sample_interval=0 mitigations=off kpti=0 kvm-intel.vmentry_l1d_flush=never hardened_usercopy=off randomize_kstack_offset=0 tsa=off cfi=off kunit.enable=0 preempt=full transparent_hugepage=always mce=off nopku vsyscall=none psi=off no5lvl random.trust_cpu=on random.trust_bootloader=on mem_encrypt=off x2apic_phys skew_tick=1 cgroup_disable=cpu,cpuset,cpuacct,io,memory,devices,freezer,net_cls,perf_event,hugetlb,pids,rdma,misc,dmem,debug,pressure
+kernelCommandLine=lsm= selinux=0 apparmor=0 nokaslr audit=0 ima=off ima_appraise=off evm=fix no_file_caps nowatchdog nosoftlockup no_debug_objects vm_debug=- debug_pagealloc=off page_poison=off schedstats=disable traceoff_after_boot split_lock_detect=off kmemleak=off debugfs=off kfence.sample_interval=0 mitigations=off kpti=0 kvm-intel.vmentry_l1d_flush=never hardened_usercopy=off randomize_kstack_offset=0 tsa=off cfi=off kunit.enable=0 preempt=full transparent_hugepage=always mce=off nopku vsyscall=none psi=off no5lvl random.trust_cpu=on random.trust_bootloader=on mem_encrypt=off x2apic_phys skew_tick=1 cgroup_disable=cpu,cpuset,cpuacct,io,memory,devices,freezer,net_cls,perf_event,hugetlb,pids,rdma,misc,dmem,debug,pressure
 #debugConsole=true
 #safeMode=true
 
