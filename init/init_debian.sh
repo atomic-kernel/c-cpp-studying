@@ -76,7 +76,7 @@ apt --no-install-recommends -y install make bc flex bison python3-minimal libelf
 DONT_PROMPT_WSL_INSTALL=1 code --no-sandbox --user-data-dir /usr/local/vscode
 
 
-cat >> /usr/share/vim/vim91/defaults.vim <<EOF
+cat >> /usr/share/vim/vim*/defaults.vim <<EOF
 
 set mouse-=a
 "set expandtab
