@@ -1,0 +1,49 @@
+# Windows 设置：
+# 1. 禁用HPET，使用x86 TSC
+设备管理器关闭高精度计时
+bcdedit /deletevalue useplatformclock
+bcdedit /set disabledynamictick yes
+
+# 2. 禁用异类调度
+
+# 3. 开启卓越性能模式
+
+# 4. 禁用测通道缓解
+4.1 软件 inspectre
+4.2 
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverride /t REG_DWORD /d 3 /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverrideMask /t REG_DWORD /d 3 /f
+
+https://support.microsoft.com/en-gb/topic/kb4074629-understanding-speculationcontrol-powershell-script-output-fd70a80a-a63f-e539-cda5-5be4c9e67c04
+
+# 5. 关闭快速启动
+
+# 6. 禁用MPO （不建议）
+
+# 7. 禁用DEP: 
+powershell: bcdedit.exe /set nx AlwaysOff
+cmd: bcdedit.exe /set {current} nx AlwaysOff
+
+# 8. 禁用内存压缩（不建议）
+# 9. 禁用驱动页交换：DisablePagingExecutive
+
+# 10. VBS
+1. 组策略：gpedit.msc 计算机配置 > 管理模板 > 系统 > DeviceGuard -> 打开基于虚拟化的安全（已禁用）
+2. 删除注册表：
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard\EnableVirtualizationBasedSecurity
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard\RequirePlatformSecurityFeatures
+3. 修改注册表的值，以下两项的值为0，如果没有就新建DWORD
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa\LsaCfgFlags
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard\LsaCfgFlags
+4.cmd
+mountvol X: /s
+copy %WINDIR%\System32\SecConfig.efi X:\EFI\Microsoft\Boot\SecConfig.efi /Y
+bcdedit /create {0cb3b571-2f2e-4343-a879-d86a476d7215} /d "DebugTool" /application osloader
+bcdedit /set {0cb3b571-2f2e-4343-a879-d86a476d7215} path "\EFI\Microsoft\Boot\SecConfig.efi"
+bcdedit /set {bootmgr} bootsequence {0cb3b571-2f2e-4343-a879-d86a476d7215}
+bcdedit /set {0cb3b571-2f2e-4343-a879-d86a476d7215} loadoptions DISABLE-LSA-ISO,DISABLE-VBS
+bcdedit /set vsmlaunchtype off
+bcdedit /set {0cb3b571-2f2e-4343-a879-d86a476d7215} device partition=X:
+mountvol X: /d
