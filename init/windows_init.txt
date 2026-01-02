@@ -29,7 +29,7 @@ cmd: bcdedit.exe /set {current} nx AlwaysOff
 
 # 10. VBS
 1. 组策略：gpedit.msc 计算机配置 > 管理模板 > 系统 > DeviceGuard -> 打开基于虚拟化的安全（已禁用）
-2. 删除注册表：
+2. 删除注册表，或者设置0：
 HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard\EnableVirtualizationBasedSecurity
 
 HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard\RequirePlatformSecurityFeatures
