@@ -46,11 +46,13 @@ sed -i 's@^deb http://archive.ubuntu.com/ubuntu/@deb \[ arch=amd64,i386 \] http:
 sed -i 's@^deb http://security.ubuntu.com/ubuntu/@deb \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
 sed -i 's@^# deb-src http://archive.ubuntu.com/ubuntu/@deb-src \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
 sed -i 's@^# deb-src http://security.ubuntu.com/ubuntu/@deb-src \[ arch=amd64,i386 \] http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list
+sed -i 's@://ports.ubuntu.com/ubuntu-ports@://mirrors.huaweicloud.com/ubuntu-ports@g' /etc/apt/sources.list
 
 ### 新版本sources.list
 sed -i 's@^URIs: http://archive.ubuntu.com/ubuntu/@URIs: http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list.d/ubuntu.sources
 sed -i 's@^URIs: http://security.ubuntu.com/ubuntu/@URIs: http://mirrors.huaweicloud.com/ubuntu/@g' /etc/apt/sources.list.d/ubuntu.sources
 sed -i 's@^Types: deb@Types: deb-src deb@g' /etc/apt/sources.list.d/ubuntu.sources
+sed -i 's@://ports.ubuntu.com/ubuntu-ports@://mirrors.huaweicloud.com/ubuntu-ports@g' /etc/apt/sources.list.d/*
 
 ## Debian:
 cat > /etc/apt/sources.list.d/experimental.sources << EOF
