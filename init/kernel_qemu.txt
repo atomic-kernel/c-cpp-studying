@@ -97,6 +97,8 @@ mount -t debugfs none /sys/kernel/debug
 export PATH=/usr/local/bin:/usr/bin:/usr/sbin
 setsid -c bash
 
+echo  'nameserver 10.255.255.254' >> /etc/resolv.conf
+
 ifconfig lo 127.0.0.1 netmask 255.0.0.0
 ifconfig eth0 192.168.101.2/24 netmask 255.255.255.0
 route add default gw 192.168.101.1 eth0
