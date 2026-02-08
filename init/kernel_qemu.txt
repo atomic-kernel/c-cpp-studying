@@ -66,7 +66,7 @@ ip link set br0 up
 # 清空防火墙
 # iptables -F
 iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-#brctl addif br0 eth0
+#brctl addif br0 eth0 -> 这句话不能输，否则会爆炸
 #iptables -I FORWARD -m physdev --physdev-is-bridged -j ACCEPT
 #ip tuntap add user 0 mode tap
 #ip link set dev tap0 promisc off up
