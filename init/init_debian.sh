@@ -1,6 +1,6 @@
 apt update
 
-clang_version="21"
+clang_version="22"
 gcc_version="15"
 
 # 常用操作
