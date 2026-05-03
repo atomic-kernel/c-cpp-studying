@@ -8,7 +8,7 @@ apt --no-install-recommends -y install git git-lfs file openssh-client wget curl
 apt-file update
 
 ## 文本编辑器
-apt --no-install-recommends -y install featherpad
+apt --no-install-recommends -y install featherpad qt6-wayland
 apt --no-install-recommends install qt6-wayland
 
 ## bcompare
