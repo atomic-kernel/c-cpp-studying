@@ -3,17 +3,33 @@ pacman -Ss xxx
 # 卸载软件包
 pacman -Rscn xxx
 
+# 换源
+sed -i 's/^/#/' /etc/pacman.d/mirrorlist.mingw
+sed -i 's/^/#/' /etc/pacman.d/mirrorlist.msys
+echo 'Server = https://mirrors.tuna.tsinghua.edu.cn/msys2/msys/$arch/' >> /etc/pacman.d/mirrorlist.msys
+echo 'Server = https://mirrors.tuna.tsinghua.edu.cn/msys2/mingw/$repo/' >> /etc/pacman.d/mirrorlist.mingw
 
 # 更新软件包
 pacman -Syu
 #依赖
-pacman -S --needed ucrt64/mingw-w64-ucrt-x86_64-clang ucrt64/mingw-w64-ucrt-x86_64-gcc vim git openssh tar gzip bzip2 xz cpio
+pacman -S --needed ucrt64/mingw-w64-ucrt-x86_64-clang ucrt64/mingw-w64-ucrt-x86_64-gcc vim git openssh tar gzip bzip2 xz cpio file wget curl diffutils patch make gdb zip unzip sshpass
 
+cat >> /usr/share/vim/vim92/defaults.vim <<EOF
+set mouse-=a
+"set expandtab
+set tabstop=8
+set shiftwidth=8
+set softtabstop=8
+set autoindent
+set smartindent
+set cindent
+set cinoptions+=g0
+set hlsearch
+"set number
+EOF
 
 cat >> ~/.inputrc << EOF
 
 "\e[5~": history-search-backward
 "\e[6~": history-search-forward
-"\e[H": beginning-of-line
-"\e[F": end-of-line
 EOF
