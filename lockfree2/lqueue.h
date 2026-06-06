@@ -81,8 +81,10 @@ void lqueue_init_ex(struct lqueue *const q, void *const gnull)
 	atomic_init(&q->last.count, 0);
 }
 
+#define NEED_PUSH_FIRST ((uintptr_t)(1UL << 0))
+
 static inline __attribute__((__always_inline__))
-bool push_first(struct lqueue *const q, const struct raw_lqueue_node last, const memory_order read_order, const memory_order write_order, const bool expect_already_done)
+bool push_first(struct lqueue *const q, struct raw_lqueue_node last, const memory_order read_order, const memory_order write_order, const bool expect_already_done)
 {
 	struct raw_lqueue_node old_first;
 
@@ -90,6 +92,8 @@ bool push_first(struct lqueue *const q, const struct raw_lqueue_node last, const
 	if (__builtin_expect(old_first.count >= last.count, !!expect_already_done))
 		return old_first.count > last.count;
 	old_first.next = q->first.raw_next;
+
+	last.unext &= ~NEED_PUSH_FIRST;
 
 	do {
 		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_first, last, write_order, read_order)))
@@ -99,7 +103,6 @@ bool push_first(struct lqueue *const q, const struct raw_lqueue_node last, const
 	return old_first.count > last.count;
 }
 
-#define NEED_PUSH_FIRST (1UL << 0)
 // ptr should be pointer type or uintptr_t
 #define PTR_ADD(ptr, off) ((__typeof__(ptr))((uintptr_t)(ptr) + (uintptr_t)(off)))
 #define PTR_SUB(ptr, off) ((__typeof__(ptr))((uintptr_t)(ptr) - (uintptr_t)(off)))
@@ -197,6 +200,7 @@ struct lqueue_dequeue_ret lqueue_dequeue_ex(struct lqueue *const q, void *const 
 
 restart:
 	old_first.next = atomic_load_explicit(&q->first.next, memory_order_relaxed);
+	assert(old_first.unext % alignof(struct lqueue_node) == 0);
 	old_first.count = atomic_load_explicit(&q->first.count, memory_order_relaxed);
 retry_read_last:
 	old_last.count = atomic_load_explicit(&q->last.count, memory_order_acquire);
@@ -219,6 +223,7 @@ retry_dequeue_first:
 	new_first.next = first_next;
 	new_first.count = old_first.count + 1;
 	if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_first, new_first, memory_order_relaxed, memory_order_relaxed))) {
+		assert(new_first.unext % alignof(struct lqueue_node) == 0);
 		assert(new_first.next != qnull);
 		assert(new_first.next != gnull);
 		return (struct lqueue_dequeue_ret){old_first.next, false};
