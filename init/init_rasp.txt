@@ -29,3 +29,6 @@ popd
 umount sdb2
 umount sdb1
 sync
+
+sed -i 's#://deb.debian.org/debian#://mirrors.huaweicloud.com/debian#g' /etc/apt/sources.list.d/*
+sed -i 's#://archive.raspberrypi.com/debian/#://mirrors.tuna.tsinghua.edu.cn/raspberrypi#g' /etc/apt/sources.list.d/*
