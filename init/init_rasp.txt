@@ -1,0 +1,26 @@
+# https://mirrors.tuna.tsinghua.edu.cn/raspberry-pi-os-images/raspios_lite_arm64/images/
+# https://www.raspberrypi.com/software/operating-systems/
+xz -d 2026-04-21-raspios-trixie-arm64-lite.img.xz
+dd if=2026-04-21-raspios-trixie-arm64-lite.img of=/dev/sdb bs=8388608
+sync
+# 插拔
+mkdir sdb2
+mkdir sdb1
+mount /dev/sdb2 sdb2
+mount /dev/sdb1 sdb1
+
+pushd sdb2
+vim etc/shadow
+```
+root::20564:0:99999:7:::
+```
+vim etc/ssh/sshd_config
+```
+PermitRootLogin yes
+PasswordAuthentication yes
+PermitEmptyPasswords yes
+```
+ln -s /usr/lib/systemd/system/ssh.service etc/systemd/system/multi-user.target.wants/ssh.service
+ln -s /usr/lib/systemd/system/ssh.service etc/systemd/system/sshd.service
+
+popd
