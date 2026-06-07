@@ -38,3 +38,7 @@ rootflags=noatime,async,nobarrier,data=writeback,nobh,commit=100
 
 /etc/fstab:
 noatime,async,nobarrier,data=writeback,nobh,commit=100
+
+wifi:
+raspi-config nonint do_wifi_country US
+nmtui
