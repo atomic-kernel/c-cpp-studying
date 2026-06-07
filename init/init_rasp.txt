@@ -34,17 +34,17 @@ sed -i 's#://deb.debian.org/debian#://mirrors.huaweicloud.com/debian#g' /etc/apt
 sed -i 's#://archive.raspberrypi.com/debian/#://mirrors.tuna.tsinghua.edu.cn/raspberrypi#g' /etc/apt/sources.list.d/*
 
 /boot/firmware/cmdline.txt:
-rootflags=noatime,async,nobarrier,data=writeback,nobh,commit=100
+rootflags=noatime,async,nobarrier,data=writeback,nobh,commit=100 + wsl中的cmdline
 
 /etc/fstab:
 noatime,async,nobarrier,data=writeback,nobh,commit=100
 
 wifi:
-raspi-config nonint do_wifi_country US
+raspi-config nonint do_wifi_country CN
 nmtui
 
 systemctl stop avahi-daemon.socket avahi-daemon.service userconfig.service
 systemctl disable avahi-daemon.socket avahi-daemon.service userconfig.service
 
-apt autopurge cloud-init polkitd udisk2
+apt autopurge cloud-init polkitd udisks2
 # wpasupplicant 不能卸载
