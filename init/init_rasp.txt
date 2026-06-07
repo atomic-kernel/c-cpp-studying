@@ -32,3 +32,9 @@ sync
 
 sed -i 's#://deb.debian.org/debian#://mirrors.huaweicloud.com/debian#g' /etc/apt/sources.list.d/*
 sed -i 's#://archive.raspberrypi.com/debian/#://mirrors.tuna.tsinghua.edu.cn/raspberrypi#g' /etc/apt/sources.list.d/*
+
+/boot/firmware/cmdline.txt:
+rootflags=noatime,async,nobarrier,data=writeback,nobh,commit=100
+
+/etc/fstab:
+noatime,async,nobarrier,data=writeback,nobh,commit=100
