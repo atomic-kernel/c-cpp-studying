@@ -81,28 +81,6 @@ void lqueue_init_ex(struct lqueue *const q, void *const gnull)
 	atomic_init(&q->last.count, 0);
 }
 
-#define NEED_PUSH_FIRST ((uintptr_t)(1UL << 0))
-
-static inline __attribute__((__always_inline__))
-bool push_first(struct lqueue *const q, struct raw_lqueue_node last, const memory_order read_order, const memory_order write_order, const bool expect_already_done)
-{
-	struct raw_lqueue_node old_first;
-
-	old_first.count = atomic_load_explicit(&q->first.count, read_order);
-	if (__builtin_expect(old_first.count >= last.count, !!expect_already_done))
-		return old_first.count > last.count;
-	old_first.next = q->first.raw_next;
-
-	last.unext &= ~NEED_PUSH_FIRST;
-
-	do {
-		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_first, last, write_order, read_order)))
-			return false;
-	} while (old_first.count < last.count);
-
-	return old_first.count > last.count;
-}
-
 // ptr should be pointer type or uintptr_t
 #define PTR_ADD(ptr, off) ((__typeof__(ptr))((uintptr_t)(ptr) + (uintptr_t)(off)))
 #define PTR_SUB(ptr, off) ((__typeof__(ptr))((uintptr_t)(ptr) - (uintptr_t)(off)))
@@ -110,6 +88,27 @@ bool push_first(struct lqueue *const q, struct raw_lqueue_node last, const memor
 #define OFF_2_VADDR(ptr) PTR_ADD(ptr, base_addr)
 // unext should be uintptr_t
 #define LAST_REF(unext) OFF_2_VADDR((struct lqueue_node *)((uintptr_t)(unext) & (uintptr_t)-2))
+#define NEED_PUSH_FIRST ((uintptr_t)(1UL << 0))
+
+static inline __attribute__((__always_inline__))
+bool push_first(struct lqueue *const q, const uintptr_t min, struct raw_lqueue_node last, const memory_order read_order, const memory_order write_order, const bool expect_already_done)
+{
+	struct raw_lqueue_node old_first;
+
+	old_first.count = atomic_load_explicit(&q->first.count, read_order);
+	if (__builtin_expect(old_first.count >= min, !!expect_already_done))
+		return old_first.count > last.count;
+	old_first.next = q->first.raw_next;
+
+	last.unext &= (uintptr_t)-2;
+
+	do {
+		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_first, last, write_order, read_order)))
+			return false;
+	} while (old_first.count < min);
+
+	return old_first.count > last.count;
+}
 
 static inline __attribute__((__always_inline__))
 bool lqueue_enqueue_ex(struct lqueue *const q, struct lqueue_node *const new_node, void *const qnull, void *const gnull, void *const base_addr)
@@ -142,7 +141,7 @@ retry:
 			goto failed;
 
 		// push first
-		if (unlikely(push_first(q, old_last, memory_order_acquire, memory_order_release, true)))
+		if (unlikely(push_first(q, old_last.count, old_last, memory_order_acquire, memory_order_release, true)))
 			goto restart;
 	}
 	atomic_store_explicit(&new_node->count, old_last.count + 1, memory_order_relaxed);
@@ -239,14 +238,22 @@ try_last:
 	new_last_next.next = gnull;
 	new_last_next.count = old_last.count;
 	if (likely(atomic_compare_exchange_strong_explicit(&LAST_REF(old_last.unext)->node, &old_last_next, new_last_next, memory_order_acquire, memory_order_acquire))) {
-		struct lqueue_dequeue_ret ret = {LAST_REF(old_last.unext), true};
+		const struct lqueue_dequeue_ret ret = {LAST_REF(old_last.unext), true};
+		const uintptr_t min = old_last.count + 1;
 
 		new_last.next = gnull;
 		new_last.count = old_last.count + 1;
 		// order: success should >= failed
-		if (unlikely(!atomic_compare_exchange_strong_explicit(&q->last.node, &old_last, new_last, memory_order_acquire, memory_order_acquire)))
+		if (unlikely(!atomic_compare_exchange_strong_explicit(&q->last.node, &old_last, new_last, memory_order_acquire, memory_order_acquire))) {
+			assert(old_last.count >= new_last.count);
+			if (!(old_last.unext & NEED_PUSH_FIRST) && old_last.next != gnull) {
+				assert(atomic_load_explicit(&q->first.count, memory_order_relaxed) >= new_last.count);
+				goto skip;
+			}
 			new_last = old_last;
-		push_first(q, new_last, memory_order_relaxed, memory_order_relaxed, false);
+		}
+		push_first(q, min, new_last, memory_order_relaxed, memory_order_relaxed, false);
+skip:
 		return ret;
 	}
 	if (old_last_next.next == gnull) {
