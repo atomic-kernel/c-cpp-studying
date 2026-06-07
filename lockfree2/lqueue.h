@@ -106,6 +106,17 @@ void lqueue_init_ex(struct lqueue *const q, void *const gnull)
 	atomic_init(&q->last.count, 0);
 }
 
+// assume UINTPTR_MAX >= INTPTR_MAX
+_Static_assert(UINTPTR_MAX == (uintptr_t)INTPTR_MAX ||
+		(UINTPTR_MAX - (uintptr_t)INTPTR_MAX <= (uintptr_t)INTPTR_MAX + 1 &&
+		 INTPTR_MIN + INTPTR_MAX < 0), "size check failed");
+static inline __attribute__((__always_inline__)) intptr_t uptr_2_ptr(const uintptr_t x)
+{
+	if (x <= (uintptr_t)INTPTR_MAX)
+		return x;
+	return -(intptr_t)(UINTPTR_MAX - x) - 1;
+}
+
 // ptr should be pointer type or uintptr_t
 #define PTR_ADD(ptr, off) ((__typeof__(ptr))((uintptr_t)(ptr) + (uintptr_t)(off)))
 #define PTR_SUB(ptr, off) ((__typeof__(ptr))((uintptr_t)(ptr) - (uintptr_t)(off)))
@@ -114,6 +125,14 @@ void lqueue_init_ex(struct lqueue *const q, void *const gnull)
 // unext should be uintptr_t
 #define LAST_REF(unext) OFF_2_VADDR((struct lqueue_node *)((uintptr_t)(unext) & (uintptr_t)-2))
 #define NEED_PUSH_FIRST ((uintptr_t)(1UL << 0))
+// x >= y
+#define COUNT_GE(x, y) (uptr_2_ptr((uintptr_t)(x) - (uintptr_t)(y)) >= 0)
+// x > y
+#define COUNT_G(x, y) (uptr_2_ptr((uintptr_t)(x) - (uintptr_t)(y)) > 0)
+// x < y
+#define COUNT_S(x, y) (uptr_2_ptr((uintptr_t)(x) - (uintptr_t)(y)) < 0)
+// x <= y
+#define COUNT_SE(x, y) (uptr_2_ptr((uintptr_t)(x) - (uintptr_t)(y)) <= 0)
 
 static inline __attribute__((__always_inline__))
 bool push_first(struct lqueue *const q, const uintptr_t min, struct raw_lqueue_node last, const memory_order read_order, const memory_order write_order, const bool expect_already_done)
@@ -121,8 +140,8 @@ bool push_first(struct lqueue *const q, const uintptr_t min, struct raw_lqueue_n
 	struct raw_lqueue_node old_first;
 
 	old_first.count = atomic_load_explicit(&q->first.count, read_order);
-	if (__builtin_expect(old_first.count >= min, !!expect_already_done))
-		return old_first.count > last.count;
+	if (__builtin_expect(COUNT_GE(old_first.count, min), !!expect_already_done))
+		return COUNT_G(old_first.count, last.count);
 	old_first.next = q->first.raw_next;
 
 	last.unext &= (uintptr_t)-2;
@@ -130,9 +149,9 @@ bool push_first(struct lqueue *const q, const uintptr_t min, struct raw_lqueue_n
 	do {
 		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_first, last, write_order, read_order)))
 			return false;
-	} while (old_first.count < min);
+	} while (COUNT_S(old_first.count, min));
 
-	return old_first.count > last.count;
+	return COUNT_G(old_first.count, last.count);
 }
 
 static inline __attribute__((__always_inline__))
@@ -236,7 +255,7 @@ retry_last_got:
 		ret.node = NULL;
 		return ret;
 	}
-	if ((old_last.unext & NEED_PUSH_FIRST) || old_first.count >= old_last.count)
+	if ((old_last.unext & NEED_PUSH_FIRST) || COUNT_GE(old_first.count, old_last.count))
 		goto try_last;
 
 retry_dequeue_first:
@@ -253,7 +272,7 @@ retry_dequeue_first:
 		return (struct lqueue_dequeue_ret){old_first.next, false};
 	}
 
-	if (old_first.count >= old_last.count)
+	if (COUNT_GE(old_first.count, old_last.count))
 		goto retry_read_last;
 	goto retry_dequeue_first;
 
@@ -270,9 +289,9 @@ try_last:
 		new_last.count = old_last.count + 1;
 		// order: success should >= failed
 		if (unlikely(!atomic_compare_exchange_strong_explicit(&q->last.node, &old_last, new_last, memory_order_acquire, memory_order_acquire))) {
-			assert(old_last.count >= new_last.count);
+			assert(COUNT_GE(old_last.count, new_last.count));
 			if (!(old_last.unext & NEED_PUSH_FIRST) && old_last.next != gnull) {
-				assert(atomic_load_explicit(&q->first.count, memory_order_relaxed) >= new_last.count);
+				assert(COUNT_GE(atomic_load_explicit(&q->first.count, memory_order_relaxed), new_last.count));
 				goto skip;
 			}
 			new_last = old_last;
