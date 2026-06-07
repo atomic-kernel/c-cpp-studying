@@ -72,6 +72,31 @@ struct lqueue {
 	struct lqueue_node last;
 };
 
+_Static_assert(sizeof(struct lqueue_node) == 2 * sizeof(void *) &&
+		alignof(struct lqueue_node) >= 2 * sizeof(void *) &&
+		alignof(_Atomic struct raw_lqueue_node) == 2 * sizeof(void *),
+		"size/align check failed");
+#if UINTPTR_MAX == UINT64_MAX
+# ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16
+#  ifdef __x86_64__
+#   warning "try to recompile with -mcx16 / -march=x86-64-v[2/3/4]"
+#  else
+#   warning "your platform may be not support 16b atomic"
+#  endif
+# endif
+#elif !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8)
+# if defined(__arm__)
+#  warning "try to recompile with -march=armv7-a / -mcpu=cortex-a[7/9/15]"
+# else
+#  warning "your platform may be not support 8b atomic"
+# endif
+#endif
+#if defined(__clang__) || UINTPTR_MAX == UINT32_MAX
+_Static_assert(__atomic_always_lock_free(sizeof(_Atomic struct raw_lqueue_node),
+			(void *)(uintptr_t)alignof(_Atomic struct raw_lqueue_node)),
+		"lock free check failed");
+#endif
+
 static inline __attribute__((__always_inline__))
 void lqueue_init_ex(struct lqueue *const q, void *const gnull)
 {
