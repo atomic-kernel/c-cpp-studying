@@ -1,6 +1,8 @@
 # https://mirrors.tuna.tsinghua.edu.cn/raspberry-pi-os-images/raspios_lite_arm64/images/
 # https://www.raspberrypi.com/software/operating-systems/
 xz -d 2026-04-21-raspios-trixie-arm64-lite.img.xz
+
+umount /dev/sdb*
 dd if=2026-04-21-raspios-trixie-arm64-lite.img of=/dev/sdb bs=8388608
 sync
 # 插拔
@@ -22,5 +24,8 @@ PermitEmptyPasswords yes
 ```
 ln -s /usr/lib/systemd/system/ssh.service etc/systemd/system/multi-user.target.wants/ssh.service
 ln -s /usr/lib/systemd/system/ssh.service etc/systemd/system/sshd.service
-
 popd
+
+umount sdb2
+umount sdb1
+sync
