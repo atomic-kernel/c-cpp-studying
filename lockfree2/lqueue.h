@@ -59,6 +59,7 @@ struct lqueue_node {
 			union {
 				_Atomic(struct lqueue_node *) next;
 				atomic_uintptr_t unext;
+				uintptr_t raw_unext;
 				struct lqueue_node *raw_next;
 			};
 			atomic_uintptr_t count;
@@ -142,7 +143,7 @@ bool push_first(struct lqueue *const q, const uintptr_t min, struct raw_lqueue_n
 	old_first.count = atomic_load_explicit(&q->first.count, read_order);
 	if (__builtin_expect(COUNT_GE(old_first.count, min), !!expect_already_done))
 		return COUNT_G(old_first.count, last.count);
-	old_first.next = q->first.raw_next;
+	old_first.unext = q->first.raw_unext;
 
 	last.unext &= (uintptr_t)-2;
 
@@ -179,8 +180,9 @@ retry:
 		goto retry;
 	}
 
+	struct lqueue_node *const tmp = LAST_REF(old_last.unext);
 	if (old_last.unext & NEED_PUSH_FIRST) {
-		old_next.next = atomic_load_explicit(&LAST_REF(old_last.unext)->next, memory_order_acquire);
+		old_next.next = atomic_load_explicit(&tmp->next, memory_order_acquire);
 		if (unlikely(old_next.next != qnull))
 			goto failed;
 
@@ -194,7 +196,7 @@ retry:
 	new_next.count = old_last.count;
 	old_next.next = qnull;
 	old_next.count = old_last.count;
-	if (unlikely(!atomic_compare_exchange_strong_explicit(&LAST_REF(old_last.unext)->node, &old_next, new_next, memory_order_release, memory_order_acquire)))
+	if (unlikely(!atomic_compare_exchange_strong_explicit(&tmp->node, &old_next, new_next, memory_order_release, memory_order_acquire)))
 		goto failed;
 
 	new_last.next = VADDR_2_OFF(new_node);
@@ -226,9 +228,13 @@ struct lqueue_dequeue_ret {
 	struct lqueue_node *node;
 	bool is_last;
 };
+struct lqueue_dequeue_ex_ret {
+	void *node;
+	bool is_last;
+};
 
 static inline __attribute__((__always_inline__))
-struct lqueue_dequeue_ret lqueue_dequeue_ex(struct lqueue *const q, void *const qnull, void *const gnull, void *const base_addr)
+struct lqueue_dequeue_ex_ret lqueue_dequeue_ex(struct lqueue *const q, void *const qnull, void *const gnull, void *const base_addr)
 {
 	struct raw_lqueue_node old_first;
 	struct raw_lqueue_node new_first;
@@ -236,13 +242,13 @@ struct lqueue_dequeue_ret lqueue_dequeue_ex(struct lqueue *const q, void *const 
 	struct raw_lqueue_node new_last;
 	struct raw_lqueue_node old_last_next;
 	struct raw_lqueue_node new_last_next;
-	struct lqueue_node *first_next;
+	uintptr_t first_next;
 
 	if ((uintptr_t)base_addr & 0xfff)
 		__builtin_unreachable();
 
 restart:
-	old_first.next = atomic_load_explicit(&q->first.next, memory_order_relaxed);
+	old_first.unext = atomic_load_explicit(&q->first.unext, memory_order_relaxed);
 	assert(old_first.unext % alignof(struct lqueue_node) == 0);
 	old_first.count = atomic_load_explicit(&q->first.count, memory_order_relaxed);
 retry_read_last:
@@ -250,7 +256,7 @@ retry_read_last:
 	old_last.unext = atomic_load_explicit(&q->last.unext, memory_order_relaxed);
 retry_last_got:
 	if (old_last.unext == (uintptr_t)gnull) {
-		struct lqueue_dequeue_ret ret;
+		struct lqueue_dequeue_ex_ret ret;
 
 		ret.node = NULL;
 		return ret;
@@ -259,17 +265,17 @@ retry_last_got:
 		goto try_last;
 
 retry_dequeue_first:
-	if (unlikely(old_first.next == gnull))
+	if (unlikely(old_first.unext == (uintptr_t)gnull))
 		goto restart;
 
-	first_next = old_first.next->raw_next;
-	new_first.next = first_next;
+	first_next = ((struct lqueue_node *)OFF_2_VADDR(old_first.unext))->raw_unext;
+	new_first.unext = first_next;
 	new_first.count = old_first.count + 1;
 	if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_first, new_first, memory_order_relaxed, memory_order_relaxed))) {
 		assert(new_first.unext % alignof(struct lqueue_node) == 0);
 		assert(new_first.next != qnull);
 		assert(new_first.next != gnull);
-		return (struct lqueue_dequeue_ret){old_first.next, false};
+		return (struct lqueue_dequeue_ex_ret){(struct lqueue_node *)OFF_2_VADDR(old_first.unext), false};
 	}
 
 	if (COUNT_GE(old_first.count, old_last.count))
@@ -277,20 +283,20 @@ retry_dequeue_first:
 	goto retry_dequeue_first;
 
 try_last:
-	old_last_next.next = qnull;
+	old_last_next.unext = (uintptr_t)qnull;
 	old_last_next.count = old_last.count;
-	new_last_next.next = gnull;
+	new_last_next.unext = (uintptr_t)gnull;
 	new_last_next.count = old_last.count;
 	if (likely(atomic_compare_exchange_strong_explicit(&LAST_REF(old_last.unext)->node, &old_last_next, new_last_next, memory_order_acquire, memory_order_acquire))) {
-		const struct lqueue_dequeue_ret ret = {LAST_REF(old_last.unext), true};
+		const struct lqueue_dequeue_ex_ret ret = {LAST_REF(old_last.unext), true};
 		const uintptr_t min = old_last.count + 1;
 
-		new_last.next = gnull;
+		new_last.unext = (uintptr_t)gnull;
 		new_last.count = old_last.count + 1;
 		// order: success should >= failed
 		if (unlikely(!atomic_compare_exchange_strong_explicit(&q->last.node, &old_last, new_last, memory_order_acquire, memory_order_acquire))) {
 			assert(COUNT_GE(old_last.count, new_last.count));
-			if (!(old_last.unext & NEED_PUSH_FIRST) && old_last.next != gnull) {
+			if (!(old_last.unext & NEED_PUSH_FIRST) && old_last.unext != (uintptr_t)gnull) {
 				assert(COUNT_GE(atomic_load_explicit(&q->first.count, memory_order_relaxed), new_last.count));
 				goto skip;
 			}
@@ -300,17 +306,17 @@ try_last:
 skip:
 		return ret;
 	}
-	if (old_last_next.next == gnull) {
-		new_last.next = gnull;
+	if (old_last_next.unext == (uintptr_t)gnull) {
+		new_last.unext = (uintptr_t)gnull;
 		new_last.count = old_last.count + 1;
 		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_last, new_last, memory_order_release, memory_order_acquire)) {
-			struct lqueue_dequeue_ret ret;
+			struct lqueue_dequeue_ex_ret ret;
 
 			ret.node = NULL;
 			return ret;
 		}
 	} else {
-		new_last.next = old_last_next.next;
+		new_last.unext = old_last_next.unext;
 		new_last.count = old_last.count + 1;
 		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_last, new_last, memory_order_release, memory_order_acquire)) {
 			assert(new_last.next != qnull);
@@ -342,6 +348,8 @@ bool lqueue_enqueue(struct lqueue *const q, struct lqueue_node *const new_node)
 static inline __attribute__((__always_inline__))
 struct lqueue_dequeue_ret lqueue_dequeue(struct lqueue *const q)
 {
-	return lqueue_dequeue_ex(q, q, NULL, (void *)(uintptr_t)0);
+	const struct lqueue_dequeue_ex_ret ret = lqueue_dequeue_ex(q, q, NULL, (void *)(uintptr_t)0);
+
+	return (struct lqueue_dequeue_ret){ret.node, ret.is_last};
 }
 #endif
