@@ -32,6 +32,8 @@
 #include <stdbool.h>
 #endif
 #include <assert.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <stdint.h>
 #include <stdalign.h>
 
@@ -42,7 +44,25 @@
 #define unlikely(x)	__builtin_expect(!!(x), 0)
 #endif
 
-struct lqueue_node;
+#ifndef LQUEUE_NDEBUG
+#define LQUEUE_DEBUG 1
+#endif
+
+#define WRITE(fd, str) write(fd, str, sizeof(str) - 1)
+#define XSTR(s) #s
+#define STR(s) XSTR(s)
+
+#ifdef LQUEUE_DEBUG
+#define LQUEUE_ASSERT(exp) \
+	do { \
+		if (__builtin_expect_with_probability(!(exp), 0, 1)) { \
+			WRITE(2, __FILE__ ":" STR(__LINE__) ": '" #exp "' failed\n"); \
+			abort(); \
+		} \
+	} while (0)
+#else
+#define LQUEUE_ASSERT(exp) do {} while (0)
+#endif
 
 struct raw_lqueue_node {
 	uintptr_t next;
@@ -95,14 +115,15 @@ static_assert(__atomic_always_lock_free(sizeof(_Atomic struct raw_lqueue_node),
 typedef struct lqueue_node *(*element_to_node_func_t)(void *element);
 
 static inline __attribute__((__always_inline__))
-struct lqueue_node *default_element_to_node(void *element)
+struct lqueue_node *default_element_to_node(void *const element)
 {
-	return element;
+	return (struct lqueue_node *)element;
 }
 
 static inline __attribute__((__always_inline__))
 void lqueue_init_ex(struct lqueue *const q, void *const gnull)
 {
+	LQUEUE_ASSERT((uintptr_t)gnull % alignof(_Atomic struct raw_lqueue_node) == 0);
 	q->first.raw_next = (uintptr_t)gnull;
 	atomic_init(&q->first.count, 0);
 	q->last.raw_next = (uintptr_t)gnull;
@@ -120,11 +141,10 @@ static inline __attribute__((__always_inline__)) intptr_t uptr_2_ptr(const uintp
 	return -(intptr_t)(UINTPTR_MAX - x) - 1;
 }
 
-// ptr should be pointer type or uintptr_t
-#define PTR_ADD(ptr, off) ((__typeof__(ptr))((uintptr_t)(ptr) + (uintptr_t)(off)))
-#define PTR_SUB(ptr, off) ((__typeof__(ptr))((uintptr_t)(ptr) - (uintptr_t)(off)))
-#define VADDR_2_OFF(ptr) PTR_SUB((uintptr_t)(ptr), base_addr)
-#define OFF_2_VADDR(off) PTR_ADD((void *)(off), base_addr)
+// ptr should be void * (element)
+#define VADDR_2_OFF(ptr) ((uintptr_t)((uintptr_t)(ptr) - (uintptr_t)base_addr))
+// off should be uintptr_t (next)
+#define OFF_2_VADDR(off) ((void *)((uintptr_t)(off) + (uintptr_t)base_addr))
 #define NEED_PUSH_FIRST ((uintptr_t)(1UL << 0))
 // x >= y
 #define COUNT_GE(x, y) (uptr_2_ptr((uintptr_t)(x) - (uintptr_t)(y)) >= 0)
@@ -136,30 +156,37 @@ static inline __attribute__((__always_inline__)) intptr_t uptr_2_ptr(const uintp
 #define COUNT_SE(x, y) (uptr_2_ptr((uintptr_t)(x) - (uintptr_t)(y)) <= 0)
 
 static inline __attribute__((__always_inline__))
-bool push_first(struct lqueue *const q, const uintptr_t min, struct raw_lqueue_node last, const memory_order read_order, const memory_order write_order, const bool expect_already_done)
+bool push_first(struct lqueue *const q, const uintptr_t min,
+		struct raw_lqueue_node last, const memory_order read_order,
+		const memory_order write_order, const bool expect_already_done)
 {
-	struct raw_lqueue_node old_first;
+	struct raw_lqueue_node old_head_first;
 	extern void push_first_error(void) __attribute__((__error__("error useage")));
 
-	if (!__builtin_constant_p(read_order) || !__builtin_constant_p(write_order) || !__builtin_constant_p(expect_already_done))
+	if (!__builtin_constant_p(read_order) ||
+	    !__builtin_constant_p(write_order) ||
+	    !__builtin_constant_p(expect_already_done))
 		push_first_error();
-	old_first.count = atomic_load_explicit(&q->first.count, read_order);
-	if (__builtin_expect(COUNT_GE(old_first.count, min), !!expect_already_done))
-		return COUNT_G(old_first.count, last.count);
-	old_first.next = q->first.raw_next;
+
+	old_head_first.count = atomic_load_explicit(&q->first.count, read_order);
+	if (__builtin_expect(COUNT_GE(old_head_first.count, min), !!expect_already_done))
+		return COUNT_G(old_head_first.count, last.count);
+	old_head_first.next = q->first.raw_next;
 
 	last.next &= (uintptr_t)-2;
 
 	do {
-		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_first, last, write_order, read_order)))
+		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_head_first, last, write_order, read_order)))
 			return false;
-	} while (COUNT_S(old_first.count, min));
+	} while (COUNT_S(old_head_first.count, min));
 
-	return COUNT_G(old_first.count, last.count);
+	return COUNT_G(old_head_first.count, last.count);
 }
 
 static inline __attribute__((__always_inline__))
-bool lqueue_enqueue_ex(struct lqueue *const q, void *const new_element, void *const qnull, void *const gnull, void *const base_addr, const element_to_node_func_t element_to_node)
+bool lqueue_enqueue_ex(struct lqueue *const q, void *const new_element,
+		void *const qnull, void *const gnull, void *const base_addr,
+		const element_to_node_func_t element_to_node)
 {
 	struct raw_lqueue_node old_head_last;
 	struct raw_lqueue_node new_head_last;
@@ -167,15 +194,25 @@ bool lqueue_enqueue_ex(struct lqueue *const q, void *const new_element, void *co
 	struct raw_lqueue_node new_last_node;
 	struct lqueue_node *const new_node = element_to_node(new_element);
 	const uintptr_t new_pnext = VADDR_2_OFF(new_element);
+#ifdef LQUEUE_DEBUG
+	struct raw_lqueue_node old_head_last_bak;
+#endif
 
-	if ((uintptr_t)base_addr & 0xfff)
-		__builtin_unreachable();
-	assert((uintptr_t)new_element % alignof(struct lqueue_node) == 0);
+	LQUEUE_ASSERT(((uintptr_t)base_addr & 0xfff) == 0); /* base_addr should aligned to page_size */
+	LQUEUE_ASSERT((uintptr_t)new_element % alignof(_Atomic struct raw_lqueue_node) == 0);
+	static_assert(alignof(_Atomic struct raw_lqueue_node) <= 0x1000, "align check error");
+	/* new_pnext % alignof(_Atomic struct raw_lqueue_node) should == 0 */
+	LQUEUE_ASSERT(qnull != gnull && (uintptr_t)qnull % alignof(_Atomic struct raw_lqueue_node) == 0);
+	LQUEUE_ASSERT(new_pnext != (uintptr_t)qnull && new_pnext != (uintptr_t)gnull);
+	/* (new_pnext | NEED_PUSH_FIRST) should also != qnull/gnull */
 
 restart:
 	old_head_last.count = atomic_load_explicit(&q->last.count, memory_order_acquire);
 	old_head_last.next = atomic_load_explicit(&q->last.next, memory_order_relaxed);
 retry:
+#ifdef LQUEUE_DEBUG
+	old_head_last_bak = old_head_last;
+#endif
 	if (old_head_last.next == (uintptr_t)gnull) {
 		atomic_store_explicit(&new_node->count, old_head_last.count + 1, memory_order_relaxed);
 		atomic_store_explicit(&new_node->next, (uintptr_t)qnull, memory_order_release);
@@ -183,6 +220,8 @@ retry:
 		new_head_last.count = old_head_last.count + 1;
 		if (likely(atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)))
 			return true;
+		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, old_head_last_bak.count));
+		LQUEUE_ASSERT(old_head_last.count != old_head_last_bak.count || old_head_last.next == old_head_last_bak.next);
 		goto retry;
 	}
 
@@ -192,7 +231,6 @@ retry:
 		if (unlikely(old_last_node.next != (uintptr_t)qnull))
 			goto failed;
 
-		// push first
 		if (unlikely(push_first(q, old_head_last.count, old_head_last, memory_order_acquire, memory_order_release, true)))
 			goto restart;
 	}
@@ -207,24 +245,33 @@ retry:
 
 	new_head_last.next = new_pnext;
 	new_head_last.count = old_head_last.count + 1;
-	atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_relaxed);
+	if (unlikely(!atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_relaxed))) {
+		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, old_head_last_bak.count));
+		LQUEUE_ASSERT(old_head_last.count != old_head_last_bak.count || old_head_last.next == old_head_last_bak.next);
+		LQUEUE_ASSERT(old_head_last.count != new_head_last.count || old_head_last.next == new_pnext);
+	}
 	return false;
 
 failed:
 	if (unlikely(old_last_node.next == (uintptr_t)gnull)) {
 		atomic_store_explicit(&new_node->count, old_head_last.count + 2, memory_order_relaxed);
 		atomic_store_explicit(&new_node->next, (uintptr_t)qnull, memory_order_release);
-		new_head_last.next = new_pnext | 1;
+		new_head_last.next = new_pnext | NEED_PUSH_FIRST;
 		new_head_last.count = old_head_last.count + 2;
 		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire))
 			return true;
+		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, old_head_last_bak.count));
+		LQUEUE_ASSERT(old_head_last.count != old_head_last_bak.count || old_head_last.next == old_head_last_bak.next);
 	} else {
 		new_head_last.next = old_last_node.next;
 		new_head_last.count = old_head_last.count + 1;
 		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
-			assert(new_head_last.next != (uintptr_t)qnull);
-			assert(new_head_last.next != (uintptr_t)gnull);
+			LQUEUE_ASSERT(new_head_last.next != (uintptr_t)qnull);
+			LQUEUE_ASSERT(new_head_last.next % alignof(_Atomic struct raw_lqueue_node) == 0);
 			old_head_last = new_head_last;
+		} else {
+			LQUEUE_ASSERT(COUNT_GE(old_head_last.count, old_head_last_bak.count));
+			LQUEUE_ASSERT(old_head_last.count != old_head_last_bak.count || old_head_last.next == old_head_last_bak.next);
 		}
 	}
 	goto retry;
@@ -236,7 +283,9 @@ struct lqueue_dequeue_ex_ret {
 };
 
 static inline __attribute__((__always_inline__))
-struct lqueue_dequeue_ex_ret lqueue_dequeue_ex(struct lqueue *const q, void *const qnull, void *const gnull, void *const base_addr, element_to_node_func_t element_to_node)
+struct lqueue_dequeue_ex_ret lqueue_dequeue_ex(struct lqueue *const q,
+		void *const qnull, void *const gnull, void *const base_addr,
+		element_to_node_func_t element_to_node)
 {
 	struct raw_lqueue_node old_head_first;
 	struct raw_lqueue_node new_head_first;
@@ -246,12 +295,10 @@ struct lqueue_dequeue_ex_ret lqueue_dequeue_ex(struct lqueue *const q, void *con
 	struct raw_lqueue_node new_last_node;
 	uintptr_t first_pnext;
 
-	if ((uintptr_t)base_addr & 0xfff)
-		__builtin_unreachable();
+	LQUEUE_ASSERT(((uintptr_t)base_addr & 0xfff) == 0);
 
 restart:
 	old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_relaxed);
-	assert(old_head_first.next % alignof(struct lqueue_node) == 0);
 	old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_relaxed);
 retry_read_last:
 	old_head_last.count = atomic_load_explicit(&q->last.count, memory_order_acquire);
@@ -270,15 +317,13 @@ retry_dequeue_first:
 	if (unlikely(old_head_first.next == (uintptr_t)gnull))
 		goto restart;
 
-	assert(old_head_first.next != (uintptr_t)qnull);
-
 	first_pnext = element_to_node((void *)OFF_2_VADDR(old_head_first.next))->raw_next;
 	new_head_first.next = first_pnext;
 	new_head_first.count = old_head_first.count + 1;
 	if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_head_first, new_head_first, memory_order_relaxed, memory_order_relaxed))) {
-		assert(new_head_first.next % alignof(struct lqueue_node) == 0);
-		assert(new_head_first.next != (uintptr_t)qnull);
-		assert(new_head_first.next != (uintptr_t)gnull);
+		LQUEUE_ASSERT(new_head_first.next != (uintptr_t)qnull);
+		LQUEUE_ASSERT(new_head_first.next != (uintptr_t)gnull);
+		LQUEUE_ASSERT(new_head_first.next % alignof(_Atomic struct raw_lqueue_node) == 0);
 		return (struct lqueue_dequeue_ex_ret){OFF_2_VADDR(old_head_first.next), false};
 	}
 
@@ -299,7 +344,8 @@ try_last:
 		new_head_last.count = old_head_last.count + 1;
 		// order: success should >= failed
 		if (unlikely(!atomic_compare_exchange_strong_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_acquire, memory_order_acquire))) {
-			assert(COUNT_GE(old_head_last.count, new_head_last.count));
+			LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
+			LQUEUE_ASSERT(old_head_last.count != new_head_last.count || old_head_last.next == (uintptr_t)gnull);
 			if (!(old_head_last.next & NEED_PUSH_FIRST) && old_head_last.next != (uintptr_t)gnull) {
 				assert(COUNT_GE(atomic_load_explicit(&q->first.count, memory_order_relaxed), min));
 				goto skip;
@@ -323,16 +369,14 @@ skip:
 		new_head_last.next = old_last_node.next;
 		new_head_last.count = old_head_last.count + 1;
 		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
-			assert(new_head_last.next != (uintptr_t)qnull);
-			assert(new_head_last.next != (uintptr_t)gnull);
+			LQUEUE_ASSERT(new_head_last.next != (uintptr_t)qnull);
+			/* omit: new_head_last.next should also != qnull */
 			old_head_last = new_head_last;
 		}
 	}
 	goto retry_last_got;
 }
 
-#undef PTR_ADD
-#undef PTR_SUB
 #undef VADDR_2_OFF
 #undef OFF_2_VADDR
 #undef LAST_REF
