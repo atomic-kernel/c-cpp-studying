@@ -156,31 +156,38 @@ static inline __attribute__((__always_inline__)) intptr_t uptr_2_ptr(const uintp
 #define COUNT_SE(x, y) (uptr_2_ptr((uintptr_t)(x) - (uintptr_t)(y)) <= 0)
 
 static inline __attribute__((__always_inline__))
-bool push_first(struct lqueue *const q, const uintptr_t min,
-		struct raw_lqueue_node last, const memory_order read_order,
-		const memory_order write_order, const bool expect_already_done)
+bool push_first_enqueue(struct lqueue *const q, struct raw_lqueue_node last)
 {
 	struct raw_lqueue_node old_head_first;
-	extern void push_first_error(void) __attribute__((__error__("error useage")));
 
-	if (!__builtin_constant_p(read_order) ||
-	    !__builtin_constant_p(write_order) ||
-	    !__builtin_constant_p(expect_already_done))
-		push_first_error();
-
-	old_head_first.count = atomic_load_explicit(&q->first.count, read_order);
-	if (__builtin_expect(COUNT_GE(old_head_first.count, min), !!expect_already_done))
-		return COUNT_G(old_head_first.count, last.count);
+	old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_acquire);
+	if (COUNT_GE(old_head_first.count, last.count))
+		return unlikely(COUNT_G(old_head_first.count, last.count));
 	old_head_first.next = q->first.raw_next;
 
 	last.next &= (uintptr_t)-2;
 
 	do {
-		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_head_first, last, write_order, read_order)))
+		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_head_first, last, memory_order_release, memory_order_acquire)))
 			return false;
-	} while (COUNT_S(old_head_first.count, min));
+	} while (COUNT_S(old_head_first.count, last.count));
 
 	return COUNT_G(old_head_first.count, last.count);
+}
+
+static inline __attribute__((__always_inline__))
+void push_first_dequeue(struct lqueue *const q, const uintptr_t min,
+		struct raw_lqueue_node *const last, struct raw_lqueue_node *const old_head_first)
+{
+	if (unlikely(COUNT_GE(old_head_first->count, min))) /* See: https://stackoverflow.com/questions/79958831 */
+		return;
+
+	last->next &= (uintptr_t)-2;
+
+	do {
+		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, old_head_first, *last, memory_order_relaxed, memory_order_relaxed)))
+			return;
+	} while (unlikely(COUNT_S(old_head_first->count, min)));
 }
 
 static inline __attribute__((__always_inline__))
@@ -231,7 +238,7 @@ retry:
 		if (unlikely(old_last_node.next != (uintptr_t)qnull))
 			goto failed;
 
-		if (unlikely(push_first(q, old_head_last.count, old_head_last, memory_order_acquire, memory_order_release, true)))
+		if (push_first_enqueue(q, old_head_last))
 			goto restart;
 	}
 	atomic_store_explicit(&new_node->count, old_head_last.count + 1, memory_order_relaxed);
@@ -347,12 +354,12 @@ try_last:
 			LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
 			LQUEUE_ASSERT(old_head_last.count != new_head_last.count || old_head_last.next == (uintptr_t)gnull);
 			if (!(old_head_last.next & NEED_PUSH_FIRST) && old_head_last.next != (uintptr_t)gnull) {
-				assert(COUNT_GE(atomic_load_explicit(&q->first.count, memory_order_relaxed), min));
+				LQUEUE_ASSERT(COUNT_GE(atomic_load_explicit(&q->first.count, memory_order_relaxed), min));
 				goto skip;
 			}
 			new_head_last = old_head_last;
 		}
-		push_first(q, min, new_head_last, memory_order_relaxed, memory_order_relaxed, false);
+		push_first_dequeue(q, min, &new_head_last, &old_head_first);
 skip:
 		return ret;
 	}
