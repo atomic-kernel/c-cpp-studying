@@ -222,9 +222,9 @@ retry:
 #ifdef LQUEUE_DEBUG
 	old_head_last_bak = old_head_last;
 #endif
+	atomic_store_explicit(&new_node->count, old_head_last.count + 1, memory_order_relaxed);
+	atomic_store_explicit(&new_node->next, (uintptr_t)qnull, memory_order_release);
 	if (old_head_last.next == (uintptr_t)gnull) {
-		atomic_store_explicit(&new_node->count, old_head_last.count + 1, memory_order_relaxed);
-		atomic_store_explicit(&new_node->next, (uintptr_t)qnull, memory_order_release);
 		new_head_last.next = new_pnext | NEED_PUSH_FIRST;
 		new_head_last.count = old_head_last.count + 1;
 		if (likely(atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)))
@@ -243,8 +243,6 @@ retry:
 		if (push_first_enqueue(q, old_head_last))
 			goto restart;
 	}
-	atomic_store_explicit(&new_node->count, old_head_last.count + 1, memory_order_relaxed);
-	atomic_store_explicit(&new_node->next, (uintptr_t)qnull, memory_order_release);
 	new_last_node.next = new_pnext;
 	new_last_node.count = old_head_last.count;
 	old_last_node.next = (uintptr_t)qnull;
@@ -264,7 +262,6 @@ retry:
 failed:
 	if (unlikely(old_last_node.next == (uintptr_t)gnull)) {
 		atomic_store_explicit(&new_node->count, old_head_last.count + 2, memory_order_relaxed);
-		atomic_store_explicit(&new_node->next, (uintptr_t)qnull, memory_order_release);
 		new_head_last.next = new_pnext | NEED_PUSH_FIRST;
 		new_head_last.count = old_head_last.count + 2;
 		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire))
