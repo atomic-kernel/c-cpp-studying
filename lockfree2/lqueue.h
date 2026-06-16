@@ -179,8 +179,10 @@ static inline __attribute__((__always_inline__))
 void push_first_dequeue(struct lqueue *const q, const uintptr_t min,
 		struct raw_lqueue_node *const last, struct raw_lqueue_node *const old_head_first)
 {
-	if (unlikely(COUNT_GE(old_head_first->count, min))) /* See: https://stackoverflow.com/questions/79958831 */
+#if 0 /* OoTA is forbidden, see: https://stackoverflow.com/questions/79958831 */
+	if (unlikely(COUNT_GE(old_head_first->count, min)))
 		return;
+#endif
 
 	last->next &= (uintptr_t)-2;
 
@@ -347,6 +349,11 @@ try_last:
 		const struct lqueue_dequeue_ex_ret ret = {OFF_2_VADDR(old_head_last.next & -2), true};
 		const uintptr_t min = old_head_last.count + 1;
 
+		/*
+		 * first_count must <= last_count because OoTA is forbidden.
+		 * See: https://stackoverflow.com/questions/79958831
+		 */
+		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, old_head_first.count));
 		new_head_last.next = (uintptr_t)gnull;
 		new_head_last.count = old_head_last.count + 1;
 		// order: success should >= failed
@@ -377,7 +384,7 @@ skip:
 		new_head_last.count = old_head_last.count + 1;
 		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
 			LQUEUE_ASSERT(new_head_last.next != (uintptr_t)qnull);
-			/* omit: new_head_last.next should also != qnull */
+			/* omit: new_head_last.next should also != gnull */
 			old_head_last = new_head_last;
 		}
 	}
