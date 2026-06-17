@@ -44,6 +44,8 @@
 #define unlikely(x)	__builtin_expect(!!(x), 0)
 #endif
 
+#define CACHELINE_SIZE 64
+
 #ifndef LQUEUE_NDEBUG
 #define LQUEUE_DEBUG 1
 #endif
@@ -83,8 +85,8 @@ struct lqueue_node {
 };
 
 struct lqueue {
-	struct lqueue_node first;
-	struct lqueue_node last;
+	struct lqueue_node first __attribute__((aligned(CACHELINE_SIZE)));
+	struct lqueue_node last __attribute__((aligned(CACHELINE_SIZE)));
 };
 
 static_assert(sizeof(struct lqueue_node) == 2 * sizeof(void *) &&
