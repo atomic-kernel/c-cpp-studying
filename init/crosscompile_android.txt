@@ -1,0 +1,3 @@
+# 1. 下载NDK linuz.zip https://developer.android.com/ndk/downloads ，解压
+# 2. 必须使用clang编译器：
+clang --target=aarch64-linux-android36 --rtlib=compiler-rt --unwindlib=libunwind --sysroot=/解压目录/toolchains/llvm/prebuilt/linux-x86_64/sysroot -resource-dir /解压目录/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/21
