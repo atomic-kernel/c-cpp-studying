@@ -43,6 +43,9 @@
 #ifndef unlikely
 #define unlikely(x)	__builtin_expect(!!(x), 0)
 #endif
+#ifndef unlikely_ex
+#define unlikely_ex(x, p)	__builtin_expect_with_probability(!!(x), 0, p)
+#endif
 
 #define CACHELINE_SIZE 64
 
@@ -309,20 +312,18 @@ struct lqueue_dequeue_ex_ret lqueue_dequeue_ex(struct lqueue *const q,
 
 	LQUEUE_ASSERT(((uintptr_t)base_addr & 0xfff) == 0);
 
-restart:
 	old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_relaxed);
 	old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_relaxed);
 	cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
 	if (cached_nr_elements) {
-		LQUEUE_ASSERT((old_head_first.next & (uintptr_t)-alignof(struct lqueue_node)) != (uintptr_t)qnull);
-		LQUEUE_ASSERT((old_head_first.next & (uintptr_t)-alignof(struct lqueue_node)) != (uintptr_t)gnull);
 		old_head_last.count = old_head_first.count;
 		--cached_nr_elements;
-		goto raw_dequeue_first;
+		goto fast_path;
 	}
+
 retry_read_last:
 	old_head_last.count = atomic_load_explicit(&q->last.count, memory_order_acquire);
-	old_head_last.next = atomic_load_explicit(&q->last.next, memory_order_relaxed);
+	old_head_last.next = atomic_load_explicit(&q->last.next, memory_order_acquire);
 retry_last_got:
 	if (old_head_last.next == (uintptr_t)gnull) {
 		struct lqueue_dequeue_ex_ret ret;
@@ -333,15 +334,28 @@ retry_last_got:
 retry_last_got_not_gnull:
 	if ((old_head_last.next & NEED_PUSH_FIRST) || COUNT_GE(old_head_first.count, old_head_last.count))
 		goto try_last;
+	if (unlikely_ex(old_head_first.next == (uintptr_t)gnull, 0.95)) {
+		old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_acquire);
+		old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_relaxed);
+		cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
+		if (cached_nr_elements) {
+			--cached_nr_elements;
+			goto fast_path;
+		}
+		if (COUNT_GE(old_head_first.count, old_head_last.count)) {
+			if (COUNT_G(old_head_first.count, old_head_last.count))
+				goto retry_read_last;
+			goto try_last;
+		}
+		LQUEUE_ASSERT(old_head_first.next != (uintptr_t)gnull);
+	}
 
 retry_dequeue_first:
-	if (unlikely(old_head_first.next == (uintptr_t)gnull))
-		goto restart;
 	cached_nr_elements = old_head_last.count - old_head_first.count - 1;
 	if (cached_nr_elements >= alignof(struct lqueue_node))
 		cached_nr_elements = alignof(struct lqueue_node) - 1;
 
-raw_dequeue_first:
+fast_path: // cache hit
 	first_pnext = element_to_node((void *)OFF_2_VADDR(old_head_first.next & (uintptr_t)-alignof(struct lqueue_node)))->raw_next;
 	new_head_first.next = first_pnext | cached_nr_elements;
 	new_head_first.count = old_head_first.count + 1;
@@ -354,10 +368,12 @@ raw_dequeue_first:
 	cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
 	if (cached_nr_elements) {
 		--cached_nr_elements;
-		goto raw_dequeue_first;
+		goto fast_path;
 	}
-	if (COUNT_S(old_head_first.count, old_head_last.count))
+	if (COUNT_S(old_head_first.count, old_head_last.count)) {
+		LQUEUE_ASSERT(old_head_first.next != (uintptr_t)gnull);
 		goto retry_dequeue_first;
+	}
 	goto retry_read_last;
 
 try_last:
