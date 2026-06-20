@@ -238,7 +238,6 @@ retry:
 		LQUEUE_ASSERT(old_head_last.count != old_head_last_bak.count || old_head_last.next == old_head_last_bak.next);
 		goto retry;
 	}
-retry_last_not_gnull:
 
 	struct lqueue_node *const last_node = element_to_node(OFF_2_VADDR(old_head_last.next & (uintptr_t)-2));
 	if (old_head_last.next & NEED_PUSH_FIRST) {
@@ -279,11 +278,6 @@ failed:
 			LQUEUE_ASSERT(new_head_last.next != (uintptr_t)qnull);
 			LQUEUE_ASSERT(new_head_last.next % alignof(struct lqueue_node) == 0);
 			old_head_last = new_head_last;
-#ifdef LQUEUE_DEBUG
-			old_head_last_bak = old_head_last;
-#endif
-			atomic_store_explicit(&new_node->count, new_head_last.count + 1, memory_order_relaxed);
-			goto retry_last_not_gnull;
 		}
 	}
 	LQUEUE_ASSERT(COUNT_GE(old_head_last.count, old_head_last_bak.count));
@@ -331,7 +325,6 @@ retry_last_got:
 		ret.element = NULL;
 		return ret;
 	}
-retry_last_got_not_gnull:
 	if ((old_head_last.next & NEED_PUSH_FIRST) || COUNT_GE(old_head_first.count, old_head_last.count))
 		goto try_last;
 	if (unlikely_ex(old_head_first.next == (uintptr_t)gnull, 0.95)) {
@@ -422,7 +415,6 @@ skip_push_first:
 			LQUEUE_ASSERT(new_head_last.next != (uintptr_t)qnull);
 			/* omit: new_head_last.next should also != gnull */
 			old_head_last = new_head_last;
-			goto retry_last_got_not_gnull;
 		}
 	}
 	goto retry_last_got;
