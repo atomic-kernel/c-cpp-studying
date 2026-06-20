@@ -184,11 +184,6 @@ static inline __attribute__((__always_inline__))
 void push_first_dequeue(struct lqueue *const q, const uintptr_t min,
 		struct raw_lqueue_node *const last, struct raw_lqueue_node *const old_head_first)
 {
-#if 0 /* OoTA is forbidden, see: https://stackoverflow.com/questions/79958831 */
-	if (unlikely(COUNT_GE(old_head_first->count, min)))
-		return;
-#endif
-
 	last->next &= (uintptr_t)-2;
 
 	do {
@@ -307,7 +302,7 @@ struct lqueue_dequeue_ex_ret lqueue_dequeue_ex(struct lqueue *const q,
 	LQUEUE_ASSERT(((uintptr_t)base_addr & 0xfff) == 0);
 
 	old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_relaxed);
-	old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_relaxed);
+	old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_acquire);
 	cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
 	if (cached_nr_elements) {
 		old_head_last.count = old_head_first.count;
@@ -352,7 +347,7 @@ fast_path: // cache hit
 	first_pnext = element_to_node((void *)OFF_2_VADDR(old_head_first.next & (uintptr_t)-alignof(struct lqueue_node)))->raw_next;
 	new_head_first.next = first_pnext | cached_nr_elements;
 	new_head_first.count = old_head_first.count + 1;
-	if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_head_first, new_head_first, memory_order_relaxed, memory_order_relaxed))) {
+	if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_head_first, new_head_first, memory_order_release, memory_order_acquire))) {
 		LQUEUE_ASSERT((new_head_first.next & (uintptr_t)-alignof(struct lqueue_node)) != (uintptr_t)qnull);
 		LQUEUE_ASSERT((new_head_first.next & (uintptr_t)-alignof(struct lqueue_node)) != (uintptr_t)gnull);
 		return (struct lqueue_dequeue_ex_ret){OFF_2_VADDR(old_head_first.next & (uintptr_t)-alignof(struct lqueue_node)), false};
@@ -378,10 +373,6 @@ try_last:
 		const struct lqueue_dequeue_ex_ret ret = {OFF_2_VADDR(old_head_last.next & (uintptr_t)-2), true};
 		const uintptr_t min = old_head_last.count + 1;
 
-		/*
-		 * first_count must <= last_count because OoTA is forbidden.
-		 * See: https://stackoverflow.com/questions/79958831
-		 */
 		LQUEUE_ASSERT(COUNT_S(old_head_first.count, min));
 		new_head_last.next = (uintptr_t)gnull;
 		new_head_last.count = old_head_last.count + 1;
