@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "lqueue.h"
 
@@ -106,11 +107,13 @@ static noreturn void* test(void *arg)
 
 		assert((uintptr_t)e >= elements_addr && (uintptr_t)e % alignof(struct element) == 0 && e - &test_data.elements[0] < NR_ELEMENTS);
 		count = e->count;
-		assert(count == e_count[e->id]);
-		e->count = e_count[e->id] = count + 1;
 
 		// qid = thread_random_avg(NR_LQUEUES);
 		qid = pick_min_queue();
+
+		assert(count == e_count[e->id]);
+		e->count = e_count[e->id] = count + 1;
+
 		lqueue_enqueue_ex(&queues[qid].queue, e, QNULL(qid), GNULL, &test_data, element_to_node);
 		++t_count[(uintptr_t)arg];
 	}
@@ -128,6 +131,7 @@ int main(void)
 
 	for (size_t i = 0; i < NR_ELEMENTS; ++i) {
 		test_data.elements[i].id = i;
+		memset(&test_data.elements[i].node, -1, sizeof(test_data.elements[i].node));
 		lqueue_enqueue_ex(&queues[0].queue, &test_data.elements[i], QNULL(0), GNULL, &test_data, element_to_node);
 	}
 

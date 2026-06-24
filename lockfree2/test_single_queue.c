@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "lqueue.h"
 
@@ -62,6 +63,7 @@ int main(void)
 
 	for (size_t i = 0; i < POOL_SIZE; ++i) {
 		pool[i].id = i;
+		memset(&pool[i].node, -1, sizeof(pool[i].node));
 		lqueue_enqueue(&queue, &pool[i].node);
 	}
 
