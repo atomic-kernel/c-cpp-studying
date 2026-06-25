@@ -405,24 +405,20 @@ skip_push_first:
 #endif
 		return ret;
 	}
-	if (old_last_node.next == (uintptr_t)gnull) {
-		new_head_last.next = (uintptr_t)gnull;
-		new_head_last.count = old_head_last.count + 1;
-		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
+	new_head_last.next = old_last_node.next;
+	new_head_last.count = old_head_last.count + 1;
+	if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
+		LQUEUE_ASSERT(old_last_node.count == old_head_last.count);
+		if (new_head_last.next == (uintptr_t)gnull) {
 			struct lqueue_dequeue_ex_ret ret;
 
 			ret.element = NULL;
 			return ret;
 		}
-	} else {
-		new_head_last.next = old_last_node.next;
-		new_head_last.count = old_head_last.count + 1;
-		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
-			LQUEUE_ASSERT(!(new_head_last.next & (alignof(struct lqueue_node) - 1)));
-			LQUEUE_ASSERT(new_head_last.next != (uintptr_t)qnull);
-			/* omit: new_head_last.next should also != gnull */
-			old_head_last = new_head_last;
-		}
+		LQUEUE_ASSERT(!(new_head_last.next & (alignof(struct lqueue_node) - 1)));
+		LQUEUE_ASSERT(new_head_last.next != (uintptr_t)qnull);
+		/* omit: new_head_last.next should also != gnull */
+		old_head_last = new_head_last;
 	}
 	goto retry_last_got;
 }
