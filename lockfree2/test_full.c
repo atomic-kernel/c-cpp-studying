@@ -39,7 +39,7 @@ struct lqueue_node *element_to_node(void *const element)
 	return &((struct element *)element)->node;
 }
 #define GNULL ((void *)-(uintptr_t)((NR_LQUEUES + 1) * 16))
-#define QNULL(qid) ((void *)-(uintptr_t)(((qid) + 1) * 16))
+#define QNULL(qid) ((void *)(uintptr_t)((uintptr_t)-(((qid) + 1) * 16) | 0b111))
 
 static inline unsigned long long gettime_ns(void)
 {

@@ -65,8 +65,10 @@
 			abort(); \
 		} \
 	} while (0)
+#define lqueue_cmpxchg_weak(a, b, c, d, e) atomic_compare_exchange_strong_explicit((a), (b), (c), (d), (e))
 #else
 #define LQUEUE_ASSERT(exp) do {} while (0)
+#define lqueue_cmpxchg_weak(a, b, c, d, e) atomic_compare_exchange_weak_explicit((a), (b), (c), (d), (e))
 #endif
 
 struct raw_lqueue_node {
@@ -204,17 +206,13 @@ bool lqueue_enqueue_ex(struct lqueue *const q, void *const new_element,
 	struct lqueue_node *const new_node = element_to_node(new_element);
 	const uintptr_t new_pnext = VADDR_2_OFF(new_element);
 	struct lqueue_node *last_node;
-#ifdef LQUEUE_DEBUG
-	struct raw_lqueue_node old_head_last_bak;
-#endif
 
 	LQUEUE_ASSERT(((uintptr_t)base_addr & 0xfff) == 0); /* base_addr should aligned to page_size */
 	LQUEUE_ASSERT((uintptr_t)new_element % alignof(struct lqueue_node) == 0);
 	static_assert(alignof(struct lqueue_node) <= 0x1000, "align check error");
 	/* new_pnext % alignof(struct lqueue_node) should == 0 */
-	LQUEUE_ASSERT(qnull != gnull && (uintptr_t)qnull % alignof(struct lqueue_node) == 0);
+	LQUEUE_ASSERT(qnull != gnull && (uintptr_t)qnull != (uintptr_t)-1);
 	LQUEUE_ASSERT(new_pnext != (uintptr_t)qnull && new_pnext != (uintptr_t)gnull);
-	/* (new_pnext | NEED_PUSH_FIRST) should also != qnull/gnull */
 
 	// TODO: add init doc
 	LQUEUE_ASSERT(atomic_load_explicit(&new_node->next, memory_order_relaxed) == (uintptr_t)-1);
@@ -226,17 +224,15 @@ retry:
 #ifdef LQUEUE_DEBUG
 	last_node = element_to_node(OFF_2_VADDR(old_head_last.next & (uintptr_t)-2));
 	LQUEUE_ASSERT(last_node != new_node);
-	old_head_last_bak = old_head_last;
 #endif
 	atomic_store_explicit(&new_node->count, old_head_last.count + 1, memory_order_relaxed);
 	atomic_store_explicit(&new_node->next, (uintptr_t)qnull, memory_order_release);
 	if (old_head_last.next == (uintptr_t)gnull) {
 		new_head_last.next = new_pnext | NEED_PUSH_FIRST;
 		new_head_last.count = old_head_last.count + 1;
-		if (likely(atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)))
+		if (likely(lqueue_cmpxchg_weak(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)))
 			return true;
-		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, old_head_last_bak.count));
-		LQUEUE_ASSERT(old_head_last.count != old_head_last_bak.count || old_head_last.next == old_head_last_bak.next);
+		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
 		goto retry;
 	}
 
@@ -260,9 +256,8 @@ retry:
 
 	new_head_last.next = new_pnext;
 	new_head_last.count = old_head_last.count + 1;
-	if (unlikely(!atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_relaxed))) {
-		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, old_head_last_bak.count));
-		LQUEUE_ASSERT(old_head_last.count != old_head_last_bak.count || old_head_last.next == old_head_last_bak.next);
+	if (unlikely(!lqueue_cmpxchg_weak(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_relaxed))) {
+		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
 		LQUEUE_ASSERT(old_head_last.count != new_head_last.count || old_head_last.next == new_pnext);
 	}
 	return false;
@@ -272,19 +267,19 @@ failed:
 		atomic_store_explicit(&new_node->count, old_head_last.count + 2, memory_order_relaxed);
 		new_head_last.next = new_pnext | NEED_PUSH_FIRST;
 		new_head_last.count = old_head_last.count + 2;
-		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire))
+		if (lqueue_cmpxchg_weak(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire))
 			return true;
+		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count - 1));
 	} else {
 		new_head_last.next = old_last_node.next;
 		new_head_last.count = old_head_last.count + 1;
-		if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
+		if (lqueue_cmpxchg_weak(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
 			LQUEUE_ASSERT(!(new_head_last.next & (alignof(struct lqueue_node) - 1)));
 			LQUEUE_ASSERT(new_head_last.next != (uintptr_t)qnull);
 			old_head_last = new_head_last;
 		}
+		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
 	}
-	LQUEUE_ASSERT(COUNT_GE(old_head_last.count, old_head_last_bak.count));
-	LQUEUE_ASSERT(old_head_last.count != old_head_last_bak.count || old_head_last.next == old_head_last_bak.next);
 	goto retry;
 }
 
@@ -364,6 +359,7 @@ fast_path: // cache hit
 #endif
 		return (struct lqueue_dequeue_ex_ret){OFF_2_VADDR(old_head_first.next & (uintptr_t)-alignof(struct lqueue_node)), false};
 	}
+	LQUEUE_ASSERT(COUNT_GE(old_head_first.count, new_head_first.count - 1));
 
 	cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
 	if (cached_nr_elements) {
@@ -407,7 +403,7 @@ skip_push_first:
 	}
 	new_head_last.next = old_last_node.next;
 	new_head_last.count = old_head_last.count + 1;
-	if (atomic_compare_exchange_weak_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
+	if (lqueue_cmpxchg_weak(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
 		LQUEUE_ASSERT(old_last_node.count == old_head_last.count);
 		if (new_head_last.next == (uintptr_t)gnull) {
 			struct lqueue_dequeue_ex_ret ret;
@@ -420,6 +416,7 @@ skip_push_first:
 		/* omit: new_head_last.next should also != gnull */
 		old_head_last = new_head_last;
 	}
+	LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
 	goto retry_last_got;
 }
 
