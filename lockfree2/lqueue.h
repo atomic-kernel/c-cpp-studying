@@ -309,7 +309,6 @@ struct lqueue_dequeue_ex_ret lqueue_dequeue_ex(struct lqueue *const q,
 	cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
 	if (cached_nr_elements) {
 		old_head_last.count = old_head_first.count;
-		--cached_nr_elements;
 		goto fast_path;
 	}
 
@@ -327,12 +326,10 @@ retry_last_got:
 		goto try_last;
 	if (unlikely_ex(old_head_first.next == (uintptr_t)gnull, 0.95)) {
 		old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_acquire);
-		old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_relaxed);
+		old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_acquire);
 		cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
-		if (cached_nr_elements) {
-			--cached_nr_elements;
+		if (cached_nr_elements)
 			goto fast_path;
-		}
 		if (COUNT_GE(old_head_first.count, old_head_last.count)) {
 			if (COUNT_G(old_head_first.count, old_head_last.count))
 				goto retry_read_last;
@@ -342,11 +339,12 @@ retry_last_got:
 	}
 
 retry_dequeue_first:
-	cached_nr_elements = old_head_last.count - old_head_first.count - 1;
-	if (cached_nr_elements >= alignof(struct lqueue_node))
-		cached_nr_elements = alignof(struct lqueue_node) - 1;
+	cached_nr_elements = old_head_last.count - old_head_first.count;
+	if (cached_nr_elements > alignof(struct lqueue_node))
+		cached_nr_elements = alignof(struct lqueue_node);
 
 fast_path: // cache hit
+	--cached_nr_elements;
 	first_pnext = element_to_node((void *)OFF_2_VADDR(old_head_first.next & (uintptr_t)-alignof(struct lqueue_node)))->raw_next;
 	new_head_first.next = first_pnext | cached_nr_elements;
 	new_head_first.count = old_head_first.count + 1;
@@ -362,10 +360,8 @@ fast_path: // cache hit
 	LQUEUE_ASSERT(COUNT_GE(old_head_first.count, new_head_first.count - 1));
 
 	cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
-	if (cached_nr_elements) {
-		--cached_nr_elements;
+	if (cached_nr_elements)
 		goto fast_path;
-	}
 	if (COUNT_S(old_head_first.count, old_head_last.count)) {
 		LQUEUE_ASSERT(old_head_first.next != (uintptr_t)gnull);
 		goto retry_dequeue_first;
