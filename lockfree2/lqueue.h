@@ -175,7 +175,15 @@ bool push_first_enqueue(struct lqueue *const q, struct raw_lqueue_node last)
 	last.next &= (uintptr_t)-2;
 
 	do {
-		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_head_first, last, memory_order_release, memory_order_acquire)))
+		/*
+		 * write release: make sure that:
+		 *    r1 = load_acquire(head_first.count);
+		 *    r2 = load_relaxed(head_last.count);
+		 *    assert(r2 >= r1);
+		 *
+		 * read relaxed: OoTA is forbidden: https://stackoverflow.com/questions/79968377
+		 */
+		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_head_first, last, memory_order_release, memory_order_relaxed)))
 			return false;
 	} while (COUNT_S(old_head_first.count, last.count));
 
@@ -190,7 +198,15 @@ void push_first_dequeue(struct lqueue *const q, const uintptr_t min,
 	last->next &= (uintptr_t)-2;
 
 	do {
-		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, old_head_first, *last, memory_order_relaxed, memory_order_relaxed)))
+		/*
+		 * write release: make sure that:
+		 *    r1 = load_acquire(head_first.count);
+		 *    r2 = load_relaxed(head_last.count);
+		 *    assert(r2 >= r1);
+		 *
+		 * read relaxed: OoTA is forbidden: https://stackoverflow.com/questions/79968377
+		 */
+		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, old_head_first, *last, memory_order_release, memory_order_relaxed)))
 			return;
 	} while (unlikely(COUNT_S(old_head_first->count, min)));
 }
@@ -327,17 +343,12 @@ retry_last_got:
 		ret.element = NULL;
 		return ret;
 	}
-	if ((old_head_last.next & NEED_PUSH_FIRST) ||
-#ifdef LQUEUE_NEED_FREE
-			COUNT_GE(old_head_first.count, old_head_last.count)
-#else
-			old_head_first.count == old_head_last.count
-#endif
-			)
+	if ((old_head_last.next & NEED_PUSH_FIRST) || old_head_first.count == old_head_last.count)
 		goto try_last;
 
 	if (unlikely_ex(old_head_first.next == (uintptr_t)gnull, 0.95)) {
 		old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_acquire);
+		/* Must acquire at count for fast_path */
 		old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_acquire);
 		cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
 		if (cached_nr_elements)
@@ -390,7 +401,6 @@ try_last:
 #ifdef LQUEUE_NEED_FREE
 		const uintptr_t min = old_head_last.count + 1;
 
-		LQUEUE_ASSERT(COUNT_S(old_head_first.count, min));
 #endif
 		new_head_last.next = (uintptr_t)gnull;
 		new_head_last.count = old_head_last.count + 1;
@@ -403,8 +413,8 @@ try_last:
 				LQUEUE_ASSERT(COUNT_GE(atomic_load_explicit(&q->first.count, memory_order_relaxed), min));
 				goto skip_push_first;
 			}
-#endif
 			new_head_last = old_head_last;
+#endif
 		}
 #ifdef LQUEUE_NEED_FREE
 		push_first_dequeue(q, min, &new_head_last, &old_head_first);
