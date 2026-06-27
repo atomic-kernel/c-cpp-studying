@@ -47,8 +47,6 @@
 #define unlikely_ex(x, p)	__builtin_expect_with_probability(!!(x), 0, p)
 #endif
 
-#define CACHELINE_SIZE 64
-
 #ifndef LQUEUE_NDEBUG
 #define LQUEUE_DEBUG 1
 #endif
@@ -66,9 +64,11 @@
 		} \
 	} while (0)
 #define lqueue_cmpxchg_weak(a, b, c, d, e) atomic_compare_exchange_strong_explicit((a), (b), (c), (d), (e))
+#define CACHELINE_SIZE 512
 #else
 #define LQUEUE_ASSERT(exp) do {} while (0)
 #define lqueue_cmpxchg_weak(a, b, c, d, e) atomic_compare_exchange_weak_explicit((a), (b), (c), (d), (e))
+#define CACHELINE_SIZE 64 // please change to 128 for apple m series chip
 #endif
 
 struct raw_lqueue_node {
