@@ -300,6 +300,7 @@ struct lqueue_dequeue_ex_ret lqueue_dequeue_ex(struct lqueue *const q,
 
 	LQUEUE_ASSERT(((uintptr_t)base_addr & 0xfff) == 0);
 
+restart:
 	old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_relaxed);
 	old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_acquire);
 	cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
@@ -324,17 +325,8 @@ retry_last_got:
 	if ((old_head_last.next & NEED_PUSH_FIRST) || old_head_first.count == old_head_last.count)
 		goto try_last;
 
-	if (unlikely_ex(old_head_first.next == (uintptr_t)gnull, 1)) {
-		old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_acquire);
-		/* Must acquire at count for fast_path */
-		old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_acquire);
-		cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
-		if (cached_nr_elements)
-			goto fast_path;
-		if (COUNT_GE(old_head_first.count, old_head_last.count))
-			goto retry_read_last;
-		LQUEUE_ASSERT(old_head_first.next != (uintptr_t)gnull);
-	}
+	if (unlikely_ex(old_head_first.next == (uintptr_t)gnull, 1))
+		goto restart;
 
 retry_dequeue_first:
 	cached_nr_elements = old_head_last.count - old_head_first.count;
