@@ -1,0 +1,15 @@
+cmd wifi force-low-latency-mode enabled
+echo mememe > /sys/power/wake_lock
+cat /sys/kernel/debug/wakeup_sources
+
+cpus=$(nproc)
+for i in $(seq 0 $((cpus - 1)))
+do
+  echo $i
+  cd /sys/devices/system/cpu/cpu${i}/cpufreq
+  max=$(cat scaling_available_frequencies | awk '{print $1}')
+  echo performance > scaling_governor
+  echo $max > scaling_max_freq
+  echo $max > scaling_min_freq
+  cd -
+done
