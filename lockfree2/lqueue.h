@@ -190,28 +190,6 @@ bool push_first_enqueue(struct lqueue *const q, struct raw_lqueue_node last)
 	return COUNT_G(old_head_first.count, last.count);
 }
 
-#ifdef LQUEUE_NEED_FREE
-static inline __attribute__((__always_inline__))
-void push_first_dequeue(struct lqueue *const q, const uintptr_t min,
-		struct raw_lqueue_node *const last, struct raw_lqueue_node *const old_head_first)
-{
-	last->next &= (uintptr_t)-2;
-
-	do {
-		/*
-		 * write release: make sure that:
-		 *    r1 = load_acquire(head_first.count);
-		 *    r2 = load_relaxed(head_last.count);
-		 *    assert(r2 >= r1);
-		 *
-		 * read relaxed: OoTA is forbidden: https://stackoverflow.com/questions/79968377
-		 */
-		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, old_head_first, *last, memory_order_release, memory_order_relaxed)))
-			return;
-	} while (unlikely(COUNT_S(old_head_first->count, min)));
-}
-#endif
-
 static inline __attribute__((__always_inline__))
 bool lqueue_enqueue_ex(struct lqueue *const q, void *const new_element,
 		void *const qnull, void *const gnull, void *const base_addr,
@@ -309,7 +287,7 @@ struct lqueue_dequeue_ex_ret {
 static inline __attribute__((__always_inline__))
 struct lqueue_dequeue_ex_ret lqueue_dequeue_ex(struct lqueue *const q,
 		void *const qnull, void *const gnull, void *const base_addr,
-		element_to_node_func_t element_to_node)
+		const element_to_node_func_t element_to_node)
 {
 	struct raw_lqueue_node old_head_first;
 	struct raw_lqueue_node new_head_first;
@@ -346,18 +324,15 @@ retry_last_got:
 	if ((old_head_last.next & NEED_PUSH_FIRST) || old_head_first.count == old_head_last.count)
 		goto try_last;
 
-	if (unlikely_ex(old_head_first.next == (uintptr_t)gnull, 0.95)) {
+	if (unlikely_ex(old_head_first.next == (uintptr_t)gnull, 1)) {
 		old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_acquire);
 		/* Must acquire at count for fast_path */
 		old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_acquire);
 		cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
 		if (cached_nr_elements)
 			goto fast_path;
-		if (COUNT_GE(old_head_first.count, old_head_last.count)) {
-			if (COUNT_G(old_head_first.count, old_head_last.count))
-				goto retry_read_last;
-			goto try_last;
-		}
+		if (COUNT_GE(old_head_first.count, old_head_last.count))
+			goto retry_read_last;
 		LQUEUE_ASSERT(old_head_first.next != (uintptr_t)gnull);
 	}
 
@@ -396,34 +371,20 @@ try_last:
 	old_last_node.count = old_head_last.count;
 	new_last_node.next = (uintptr_t)gnull;
 	new_last_node.count = old_head_last.count;
-	if (likely(atomic_compare_exchange_strong_explicit(&element_to_node(OFF_2_VADDR(old_head_last.next & (uintptr_t)-2))->node, &old_last_node, new_last_node, memory_order_acquire, memory_order_acquire))) {
-		const struct lqueue_dequeue_ex_ret ret = {OFF_2_VADDR(old_head_last.next & (uintptr_t)-2), true};
-#ifdef LQUEUE_NEED_FREE
-		const uintptr_t min = old_head_last.count + 1;
-
-#endif
+	void *const last_element = OFF_2_VADDR(old_head_last.next & (uintptr_t)-2);
+	if (likely(atomic_compare_exchange_strong_explicit(&element_to_node(last_element)->node, &old_last_node, new_last_node, memory_order_acquire, memory_order_acquire))) {
 		new_head_last.next = (uintptr_t)gnull;
 		new_head_last.count = old_head_last.count + 1;
-		// order: success should >= failed
+		// read acquire: or relaxed + if and OoTA is forbidden
+		// write acquire: write relaxed is ok, but cmpxchg need success >= failed
 		if (unlikely(!atomic_compare_exchange_strong_explicit(&q->last.node, &old_head_last, new_head_last, memory_order_acquire, memory_order_acquire))) {
 			LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
 			LQUEUE_ASSERT(old_head_last.count != new_head_last.count || old_head_last.next == (uintptr_t)gnull);
-#ifdef LQUEUE_NEED_FREE
-			if (!(old_head_last.next & NEED_PUSH_FIRST) && old_head_last.next != (uintptr_t)gnull) {
-				LQUEUE_ASSERT(COUNT_GE(atomic_load_explicit(&q->first.count, memory_order_relaxed), min));
-				goto skip_push_first;
-			}
-			new_head_last = old_head_last;
-#endif
 		}
-#ifdef LQUEUE_NEED_FREE
-		push_first_dequeue(q, min, &new_head_last, &old_head_first);
-skip_push_first:
-#endif
 #ifdef LQUEUE_DEBUG
-		atomic_store_explicit(&element_to_node(ret.element)->next, -1, memory_order_relaxed);
+		atomic_store_explicit(&element_to_node(last_element)->next, -1, memory_order_relaxed);
 #endif
-		return ret;
+		return (struct lqueue_dequeue_ex_ret){last_element, true};
 	}
 	new_head_last.next = old_last_node.next;
 	new_head_last.count = old_head_last.count + 1;
@@ -442,6 +403,18 @@ skip_push_first:
 	}
 	LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
 	goto retry_last_got;
+}
+
+static inline __attribute__((__always_inline__))
+void lqueue_free_sync(struct lqueue *const q, void *const gnull)
+{
+	struct raw_lqueue_node head_last;
+
+	head_last.count = atomic_load_explicit(&q->last.count, memory_order_acquire);
+	head_last.next = atomic_load_explicit(&q->last.next, memory_order_relaxed);
+
+	if (head_last.next == (uintptr_t)gnull || (head_last.next & NEED_PUSH_FIRST))
+		push_first_enqueue(q, head_last);
 }
 
 #undef VADDR_2_OFF
