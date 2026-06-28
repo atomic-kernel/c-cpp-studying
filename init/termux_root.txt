@@ -26,3 +26,6 @@ do
   done
   cd -
 done
+
+# cpu温度：
+cat /sys/devices/virtual/thermal/thermal_zone9/temp
