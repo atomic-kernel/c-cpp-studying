@@ -63,7 +63,9 @@ int main(void)
 
 	for (size_t i = 0; i < POOL_SIZE; ++i) {
 		pool[i].id = i;
+#ifndef LQUEUE_NDEBUG
 		memset(&pool[i].node, -1, sizeof(pool[i].node));
+#endif
 		lqueue_enqueue(&queue, &pool[i].node);
 	}
 

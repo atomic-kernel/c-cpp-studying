@@ -12,34 +12,44 @@
 
 #include "lqueue.h"
 
-#define NR_THREADS 6
-#define NR_ELEMENTS 10
+#define NR_THREADS 8
+#define NR_ELEMENTS 7
 #define NR_LQUEUES 3
 
+#define ID_OFFSET ((size_t)0x1234aeffff)
+
 struct element {
-	size_t id __attribute__((aligned(128)));
+	size_t id __attribute__((aligned(256)));
 	struct lqueue_node node;
 	volatile size_t count;
 };
 
-struct {
+struct __attribute__((aligned(4096))) {
 	struct element elements[NR_ELEMENTS];
-} test_data __attribute__((aligned(4096)));
+} test_data;
 
-struct {
-	struct lqueue queue __attribute__((aligned(128)));
-} queues[NR_LQUEUES] __attribute__((aligned(4096)));
+struct __attribute__((aligned(4096))) {
+	struct lqueue queue __attribute__((aligned(256)));
+} queues[NR_LQUEUES];
 
-volatile size_t e_count[NR_ELEMENTS];
-volatile size_t t_count[NR_THREADS];
+struct __attribute__((aligned(4096))) {
+	struct __attribute__((aligned(256))) {
+		volatile size_t nr;
+	} e_count[NR_ELEMENTS];
+	struct __attribute__((aligned(256))) {
+		volatile size_t nr;
+	} t_count[NR_THREADS];
+} shadow_data;
 
 static inline __attribute__((__always_inline__))
 struct lqueue_node *element_to_node(void *const element)
 {
 	return &((struct element *)element)->node;
 }
-#define GNULL ((void *)-(uintptr_t)((NR_LQUEUES + 1) * 16))
-#define QNULL(qid) ((void *)(uintptr_t)((uintptr_t)-(((qid) + 1) * 16) | 0b111))
+#define QNULL(qid) ((void *)(uintptr_t) \
+			((uintptr_t)((qid + 1) * alignof(struct lqueue_node)) | (uintptr_t)(alignof(struct lqueue_node) - 1)) \
+			)
+#define GNULL ((void *)(uintptr_t)((NR_LQUEUES + 1) * alignof(struct lqueue_node)))
 
 static inline unsigned long long gettime_ns(void)
 {
@@ -91,7 +101,7 @@ static inline size_t pick_min_queue(void)
 	return min_i;
 }
 
-static noreturn void* test(void *arg)
+static noreturn void *test(void *arg)
 {
 	size_t count;
 	char rand_statebufs[1 << 16];
@@ -107,15 +117,20 @@ static noreturn void* test(void *arg)
 
 		assert((uintptr_t)e >= elements_addr && (uintptr_t)e % alignof(struct element) == 0 && e - &test_data.elements[0] < NR_ELEMENTS);
 		count = e->count;
+		assert(count == shadow_data.e_count[e->id - ID_OFFSET].nr);
 
 		// qid = thread_random_avg(NR_LQUEUES);
 		qid = pick_min_queue();
 
-		assert(count == e_count[e->id]);
-		e->count = e_count[e->id] = count + 1;
+		e->count = shadow_data.e_count[e->id - ID_OFFSET].nr = count + 1;
 
 		lqueue_enqueue_ex(&queues[qid].queue, e, QNULL(qid), GNULL, &test_data, element_to_node);
-		++t_count[(uintptr_t)arg];
+		++shadow_data.t_count[(uintptr_t)arg].nr;
+
+		if (unlikely((thread_random() & 0b111111) == 0)) {
+			for (size_t i = 0; i < NR_LQUEUES; ++i)
+				lqueue_free_sync(&queues[i].queue, GNULL);
+		}
 	}
 }
 
@@ -130,8 +145,10 @@ int main(void)
 		lqueue_init_ex(&queues[i].queue, GNULL);
 
 	for (size_t i = 0; i < NR_ELEMENTS; ++i) {
-		test_data.elements[i].id = i;
+		test_data.elements[i].id = i + ID_OFFSET;
+#ifndef LQUEUE_NDEBUG
 		memset(&test_data.elements[i].node, -1, sizeof(test_data.elements[i].node));
+#endif
 		lqueue_enqueue_ex(&queues[0].queue, &test_data.elements[i], QNULL(0), GNULL, &test_data, element_to_node);
 	}
 
@@ -153,14 +170,14 @@ static void *watch_dog(void *arg)
 		sleep(8);
 		printf("threads:");
 		for (size_t i = 0; i < NR_THREADS; ++i) {
-			assert(wd_t_count[i] != t_count[i]);
-			wd_t_count[i] = t_count[i];
+			assert(wd_t_count[i] != shadow_data.t_count[i].nr);
+			wd_t_count[i] = shadow_data.t_count[i].nr;
 			printf("%zu: %zu,", i, wd_t_count[i]);
 		}
 		printf("; nodes:");
 		for (size_t i = 0; i < NR_ELEMENTS; ++i) {
-			assert(wd_e_count[i] != e_count[i]);
-			wd_e_count[i] = e_count[i];
+			assert(wd_e_count[i] != shadow_data.e_count[i].nr);
+			wd_e_count[i] = shadow_data.e_count[i].nr;
 			printf("%zu: %zu,", i, wd_e_count[i]);
 		}
 		printf("; lqueues:");

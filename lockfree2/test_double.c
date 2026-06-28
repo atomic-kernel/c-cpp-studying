@@ -44,7 +44,9 @@ struct __attribute__((aligned(4096))) {
 } shadow_data;
 
 #define GNULL NULL
-#define QNULL(qid) ((void *)(uintptr_t)((uintptr_t)((qid + 1) * alignof(struct lqueue_node)) | 0b111))
+#define QNULL(qid) ((void *)(uintptr_t) \
+			((uintptr_t)((qid + 1) * alignof(struct lqueue_node)) | (uintptr_t)(alignof(struct lqueue_node) - 1)) \
+			)
 
 static inline unsigned long long gettime_ns(void)
 {
@@ -94,7 +96,7 @@ retry:
 		count = e->count;
 		assert(count == shadow_data.e_count[e->id - ID_OFFSET].nr);
 
-		if (unlikely((ran & 0b111111111100) == 0))
+		if (unlikely((ran & 0b111111111100) == 0)) //  1 / 1024
 			qid = pick_min_queue();
 		else
 			qid = !!(ran & 0b10);
@@ -103,6 +105,10 @@ retry:
 
 		lqueue_enqueue_ex(&queues[qid].queue, &e->node, QNULL(qid), GNULL, NULL, default_element_to_node);
 		++shadow_data.t_count[(uintptr_t)arg].nr;
+		if (unlikely((ran & (0b11111100 << 10)) == 0)) { // 1 / 64
+			lqueue_free_sync(&queues[0].queue, GNULL);
+			lqueue_free_sync(&queues[1].queue, GNULL);
+		}
 	}
 }
 
