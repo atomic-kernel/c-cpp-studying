@@ -9,6 +9,7 @@ cmd power set-adaptive-power-saver-enabled false
 stop mi_thermald
 stop vendor.thermal-mediatek
 stop thermald
+stop miperf2-hal
 
 cpus=$(nproc)
 for i in $(seq 0 $((cpus - 1)))
