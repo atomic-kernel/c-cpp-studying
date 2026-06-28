@@ -33,3 +33,7 @@ done
 cat /sys/devices/virtual/thermal/thermal_zone9/temp
 # cpu频率
 cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq
+# 调频器
+cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+# cgroup
+echo $$ > /sys/fs/cgroup/cgroup.procs
