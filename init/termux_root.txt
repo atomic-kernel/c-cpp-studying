@@ -31,3 +31,5 @@ done
 
 # cpu温度：
 cat /sys/devices/virtual/thermal/thermal_zone9/temp
+# cpu频率
+cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq
