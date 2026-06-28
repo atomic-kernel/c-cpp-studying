@@ -19,4 +19,10 @@ do
   echo $max > scaling_max_freq
   echo $max > scaling_min_freq
   cd -
+  cd /sys/devices/system/cpu/cpu${i}/cpuidle
+  for i2 in state*
+  do
+    echo 1 > $i2/disable
+  done
+  cd -
 done
