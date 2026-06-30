@@ -71,6 +71,10 @@
 #define CACHELINE_SIZE 64 // please change to 128 for apple m series chip
 #endif
 
+#ifndef DELAY_CYCLES
+#define DELAY_CYCLES 512
+#endif
+
 struct raw_lqueue_node {
 	uintptr_t next;
 	uintptr_t count;
@@ -125,6 +129,29 @@ static inline __attribute__((__always_inline__))
 struct lqueue_node *default_element_to_node(void *const element)
 {
 	return (struct lqueue_node *)element;
+}
+
+static inline __attribute__((__always_inline__))
+void asm_loop(size_t size)
+{
+#ifdef __x86_64__
+	__asm__ volatile (
+			"1:dec	%0\n\t"
+			"jne	1b"
+			:"+r"(size)::"cc");
+#elif defined(__aarch64__) || defined(__arm__)
+	__asm__ volatile (
+			"1:subs	%0, %0, #1\n\t"
+			"bne	1b"
+			:"+r"(size)::"cc");
+#else
+#warning "TODO"
+	do {
+		__asm__ volatile (""::"r"(size):);
+	} while (--size);
+#endif
+	if (size != 0)
+		__builtin_unreachable();
 }
 
 static inline __attribute__((__always_inline__))
@@ -185,9 +212,14 @@ bool push_first_enqueue(struct lqueue *const q, struct raw_lqueue_node last)
 		 */
 		if (likely(atomic_compare_exchange_weak_explicit(&q->first.node, &old_head_first, last, memory_order_release, memory_order_relaxed)))
 			return false;
+#if DELAY_CYCLES != 0
+		asm_loop(DELAY_CYCLES);
+		old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_relaxed);
+		old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_relaxed);
+#endif
 	} while (COUNT_S(old_head_first.count, last.count));
 
-	return COUNT_G(old_head_first.count, last.count);
+	return DELAY_CYCLES != 0 ? : COUNT_G(old_head_first.count, last.count);
 }
 
 static inline __attribute__((__always_inline__))
@@ -229,7 +261,12 @@ retry:
 		if (likely(lqueue_cmpxchg_weak(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)))
 			return true;
 		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
+#if DELAY_CYCLES != 0
+		asm_loop(DELAY_CYCLES);
+		goto restart;
+#else
 		goto retry;
+#endif
 	}
 
 #ifndef LQUEUE_DEBUG
@@ -259,6 +296,16 @@ retry:
 	return false;
 
 failed:
+#if DELAY_CYCLES != 0
+	asm_loop(DELAY_CYCLES);
+	new_head_last.count = atomic_load_explicit(&q->last.count, memory_order_acquire);
+	new_head_last.next = atomic_load_explicit(&q->last.next, memory_order_relaxed);
+	if (likely(new_head_last.count != old_head_last.count)) {
+		LQUEUE_ASSERT(COUNT_G(new_head_last.count, old_head_last.count));
+		old_head_last = new_head_last;
+		goto retry;
+	}
+#endif
 	if (unlikely(old_last_node.next == (uintptr_t)gnull)) {
 		atomic_store_explicit(&new_node->count, old_head_last.count + 2, memory_order_relaxed);
 		new_head_last.next = new_pnext | NEED_PUSH_FIRST;
@@ -314,6 +361,7 @@ retry_read_last:
 #ifndef LQUEUE_NEED_FREE
 	LQUEUE_ASSERT(COUNT_SE(old_head_first.count, old_head_last.count));
 #endif
+	/* acquire becasuse make sure read last.count -> last.next -> first.next -> first.count */
 	old_head_last.next = atomic_load_explicit(&q->last.next, memory_order_acquire);
 retry_last_got:
 	if (old_head_last.next == (uintptr_t)gnull) {
@@ -348,6 +396,12 @@ fast_path: // cache hit
 		return (struct lqueue_dequeue_ex_ret){OFF_2_VADDR(old_head_first.next & (uintptr_t)-alignof(struct lqueue_node)), false};
 	}
 	LQUEUE_ASSERT(COUNT_GE(old_head_first.count, new_head_first.count - 1));
+	
+#if DELAY_CYCLES != 0
+	asm_loop(DELAY_CYCLES);
+	old_head_first.next = atomic_load_explicit(&q->first.next, memory_order_acquire);
+	old_head_first.count = atomic_load_explicit(&q->first.count, memory_order_acquire);
+#endif
 
 	cached_nr_elements = old_head_first.next & (uintptr_t)(alignof(struct lqueue_node) - 1);
 	if (cached_nr_elements)
@@ -378,6 +432,16 @@ try_last:
 #endif
 		return (struct lqueue_dequeue_ex_ret){last_element, true};
 	}
+#if DELAY_CYCLES != 0
+	asm_loop(DELAY_CYCLES);
+	new_head_last.count = atomic_load_explicit(&q->last.count, memory_order_acquire);
+	new_head_last.next = atomic_load_explicit(&q->last.next, memory_order_acquire);
+	if (new_head_last.count != old_head_last.count) {
+		LQUEUE_ASSERT(COUNT_G(new_head_last.count, old_head_last.count));
+		old_head_last = new_head_last;
+		goto retry_last_got;
+	}
+#endif
 	new_head_last.next = old_last_node.next;
 	new_head_last.count = old_head_last.count + 1;
 	if (lqueue_cmpxchg_weak(&q->last.node, &old_head_last, new_head_last, memory_order_release, memory_order_acquire)) {
