@@ -264,9 +264,8 @@ retry:
 #if DELAY_CYCLES != 0
 		asm_loop(DELAY_CYCLES);
 		goto restart;
-#else
-		goto retry;
 #endif
+		goto retry;
 	}
 
 #ifndef LQUEUE_DEBUG
@@ -297,7 +296,7 @@ retry:
 
 failed:
 #if DELAY_CYCLES != 0
-	asm_loop(DELAY_CYCLES);
+	asm_loop(DELAY_CYCLES * 2);
 	new_head_last.count = atomic_load_explicit(&q->last.count, memory_order_acquire);
 	new_head_last.next = atomic_load_explicit(&q->last.next, memory_order_relaxed);
 	if (likely(new_head_last.count != old_head_last.count)) {
@@ -320,9 +319,14 @@ failed:
 			LQUEUE_ASSERT(!(new_head_last.next & (alignof(struct lqueue_node) - 1)));
 			LQUEUE_ASSERT(new_head_last.next != (uintptr_t)qnull);
 			old_head_last = new_head_last;
+			goto retry;
 		}
 		LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
 	}
+#if DELAY_CYCLES != 0
+	asm_loop(DELAY_CYCLES);
+	goto restart;
+#endif
 	goto retry;
 }
 
@@ -433,7 +437,7 @@ try_last:
 		return (struct lqueue_dequeue_ex_ret){last_element, true};
 	}
 #if DELAY_CYCLES != 0
-	asm_loop(DELAY_CYCLES);
+	asm_loop(DELAY_CYCLES * 2);
 	new_head_last.count = atomic_load_explicit(&q->last.count, memory_order_acquire);
 	new_head_last.next = atomic_load_explicit(&q->last.next, memory_order_acquire);
 	if (new_head_last.count != old_head_last.count) {
@@ -458,6 +462,10 @@ try_last:
 		old_head_last = new_head_last;
 	}
 	LQUEUE_ASSERT(COUNT_GE(old_head_last.count, new_head_last.count));
+#if DELAY_CYCLES != 0
+	asm_loop(DELAY_CYCLES);
+	goto retry_read_last;
+#endif
 	goto retry_last_got;
 }
 
