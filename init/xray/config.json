@@ -1,0 +1,121 @@
+{
+	"log": {
+		"loglevel": "info"
+	},
+	"inbounds": [
+		{
+			"port": 12345,
+			"protocol": "tunnel",
+			"settings": {
+				"network": "tcp,udp",
+				"followRedirect": true
+			},
+			"streamSettings": {
+				"sockopt": {
+					"tproxy": "tproxy"
+				}
+			},
+			"sniffing": {
+				"enabled": true,
+				"destOverride": [
+					"http", "tls", "quic"
+				],
+				"routeOnly": false
+			}
+		},
+		{
+			"port": 10808,
+			"listen": "0.0.0.0",
+			"protocol": "socks",
+			"sniffing": {
+				"enabled": true,
+				"destOverride": [
+					"http", "tls", "quic"
+				],
+				"routeOnly": false
+			},
+			"settings": {
+				"auth": "noauth",
+				"udp": true
+			}
+		}
+	],
+	"outbounds": [
+		{
+			"tag": "proxy",
+			"mux": {
+				"enabled": false,
+				"concurrency": -1
+			},
+			"protocol": "vless",
+			"settings": {
+				"vnext": [
+					{
+						"address": "",
+						"port": 443,
+						"users": [
+							{
+								"id": "",
+								"encryption": "none",
+								"flow": "xtls-rprx-vision"
+							}
+						]
+					}
+				]
+			},
+			"streamSettings": {
+				"network": "tcp",
+				"security": "reality",
+				"realitySettings": {
+					"serverName": "",
+					"fingerprint": "chrome",
+					"allowInsecure": false,
+					"publicKey": ""
+				}
+			}
+		},
+		{
+			"tag": "direct",
+			"protocol": "freedom"
+		}
+	],
+	"routing": {
+		"domainStrategy": "AsIs",
+		"rules": [
+			{
+				"type": "field",
+				"outboundTag": "direct",
+				"domain": [
+					"geosite:cn",
+					"geosite:private",
+					"domain:akamaized.net",
+					"domain:steamcontent.com",
+					"domain:steamserver.net",
+					"domain:cbjq.com",
+					"domain:oracle.com.",
+					"domain:cloudflare.epicgamescdn.com",
+					"domain:download.epicgames.com",
+					"domain:fastly-download.epicgames.com",
+					"domain:r3.o.lencr.org",
+					"domain:juequling.com",
+					"domain:overclock.net",
+					"domain:packages.debian.org",
+					"domain:buildd.debian.org",
+					"domain:salsa.debian.org",
+					"domain:asfan.top",
+					"domain:eqflash.fun",
+					"domain:centrmus.com",
+					"domain:hongkongpost.hk"
+				]
+			},
+			{
+				"type": "field",
+				"outboundTag": "direct",
+				"ip": [
+					"geoip:cn",
+					"geoip:private"
+				]
+			}
+		]
+	}
+}
