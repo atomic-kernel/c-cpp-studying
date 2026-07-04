@@ -1,0 +1,36 @@
+ulimit -SHn 1000000
+
+ip rule add fwmark 1 table 100
+ip route add local 0.0.0.0/0 dev lo table 100
+iptables -t mangle -N XRAY
+# ip address | grep -w "inet" | awk '{print $2}'
+iptables -t mangle -A XRAY -d xxx -j RETURN
+iptables -t mangle -A XRAY -d xxx -j RETURN
+
+# 常见保留地址
+iptables -t mangle -A XRAY -d 10.0.0.0/8 -j RETURN
+iptables -t mangle -A XRAY -d 127.0.0.0/8 -j RETURN
+iptables -t mangle -A XRAY -d 172.16.0.0/12 -j RETURN
+iptables -t mangle -A XRAY -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A XRAY -d 224.0.0.0/3 -j RETURN
+iptables -t mangle -A XRAY -d 169.254.0.0/16 -j RETURN
+
+
+iptables -t mangle -A XRAY -p tcp -j TPROXY --on-port 12345 --tproxy-mark 1
+iptables -t mangle -A XRAY -p udp -j TPROXY --on-port 12345 --tproxy-mark 1
+iptables -t mangle -A PREROUTING -j XRAY
+
+
+iptables -t mangle -D PREROUTING -j XRAY
+iptables -t mangle -D XRAY 1
+iptables -t mangle -D XRAY 1
+iptables -t mangle -D XRAY 1
+iptables -t mangle -D XRAY 1
+iptables -t mangle -D XRAY 1
+iptables -t mangle -D XRAY 1
+iptables -t mangle -D XRAY 1
+iptables -t mangle -D XRAY 1
+iptables -t mangle -D XRAY 1
+iptables -t mangle -D XRAY 1
+iptables -t mangle -D XRAY 1
+iptables -t mangle -X XRAY
