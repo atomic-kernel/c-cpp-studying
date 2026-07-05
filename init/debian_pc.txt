@@ -13,13 +13,19 @@ GRUB_CMDLINE_LINUX_DEFAULT="nouveau.modeset=1"
 GRUB_DISABLE_OS_PROBER=true
 ```
 
-# 多显卡配置主显卡：
-## ~/.config/plasma-workspace/env/gpu.sh
+# 多显卡配置主显卡（如屏蔽集显，使用独显输出）：
+1. 查看显卡
+lspci -nnk | grep -A3 -E "VGA|3D"
+ls -al /dev/dri/by-path
+ls -al /dev/dri/
+
+2. 配置希望的主显卡 ~/.config/plasma-workspace/env/gpu.sh
 ```
 export KWIN_DRM_DEVICES=/dev/dri/card0:/dev/dri/card1
 ```
 
 # 多显示器配置主显示器：
-1. cmdline + fbcon=map:1
+1. cmdline 可选
+fbcon=map:1
 2. 在kde里面配置：Display configuration
 3. 在kde里面配置：Color & Themes -> SDDM -> Apply Plasma Settings
