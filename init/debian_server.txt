@@ -1,4 +1,0 @@
-# https://cdimage.debian.org/cdimage/daily-builds/daily/
-
-
-apt download $(apt-cache depends --no-recommends --no-suggests --no-conflicts --no-replaces --no-breaks --no-enhances --installed --recurse network-manager network-manager-tui | grep -v '^ ' | sort | uniq)

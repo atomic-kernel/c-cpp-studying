@@ -1,0 +1,25 @@
+# https://cdimage.debian.org/cdimage/weekly-builds/amd64/iso-dvd
+# 建议下载DVD版本
+
+# 建议插网线，正常配置网络
+# 建议不配置apt镜像，直接跳过
+# 选择软件包：如果是安装server版本，什么都不选；如果是安装桌面版本，建议只选择kde，其他软件包不需要
+
+# /etc/default/grub 建议配置：
+```
+# 如果有显示器：
+GRUB_CMDLINE_LINUX_DEFAULT="nouveau.modeset=1"
+
+GRUB_DISABLE_OS_PROBER=true
+```
+
+# 多显卡配置主显卡：
+## ~/.config/plasma-workspace/env/gpu.sh
+```
+export KWIN_DRM_DEVICES=/dev/dri/card0:/dev/dri/card1
+```
+
+# 多显示器配置主显示器：
+1. cmdline + fbcon=map:1
+2. 在kde里面配置：Display configuration
+3. 在kde里面配置：Color & Themes -> SDDM -> Apply Plasma Settings
