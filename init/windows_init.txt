@@ -1,3 +1,11 @@
+# 跳过登录：
+## shift + f10
+oobe\bypassnro
+## 如果需要你创建用户：
+start ms-cxh:localonly
+
+
+
 # Windows 设置：
 # 1. 禁用HPET，使用x86 TSC
 设备管理器关闭高精度计时
