@@ -57,3 +57,8 @@ systemctl --user mask xdg-permission-store
 ## flatapk沙盒相关
 systemctl --user mask xdg-desktop-portal.service
 systemctl --user stop xdg-desktop-portal.service
+## kactivitymanagerd
+systemctl --user mask plasma-kactivitymanagerd.service
+systemctl --user stop plasma-kactivitymanagerd.service
+## packagekit
+apt autopurge packagekit
