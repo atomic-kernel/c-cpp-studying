@@ -33,3 +33,17 @@ fbcon=map:1
 # 拼音输入：
 apt --no-install-recommends install fcitx5-pinyin kde-config-fcitx5
 ## 设置->输入输出->键盘->虚拟键盘 -> 选择 fcitx5-wayland
+
+# 精简
+## 打印服务：
+apt autopurge cups-daemon cups
+## 磁盘健康：
+apt autopurge smartmontools
+## flatapk沙盒服务：
+systemctl --user stop xdg-document-portal
+systemctl --user mask xdg-document-portal
+## systemd-journald:
+systemctl stop systemd-journald.service systemd-journald.socket systemd-journald-dev-log.socket systemd-journal-flush.service
+systemctl mask systemd-journald.service systemd-journald.socket systemd-journald-dev-log.socket systemd-journal-flush.service
+## 文件共享：
+apt autopurge kdeconnect
