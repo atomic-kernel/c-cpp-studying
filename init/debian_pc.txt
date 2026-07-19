@@ -47,3 +47,13 @@ systemctl stop systemd-journald.service systemd-journald.socket systemd-journald
 systemctl mask systemd-journald.service systemd-journald.socket systemd-journald-dev-log.socket systemd-journal-flush.service
 ## 文件共享：
 apt autopurge kdeconnect
+## gmenudbusmenuproxy
+systemctl --user stop plasma-gmenudbusmenuproxy.service
+systemctl --user mask plasma-gmenudbusmenuproxy.service
+## xdg-permission-store: flatapk沙盒权限相关
+systemctl --user stop xdg-permission-store
+systemctl --user mask xdg-permission-store
+## kaccess: 快捷键
+## flatapk沙盒相关
+systemctl --user mask xdg-desktop-portal.service
+systemctl --user stop xdg-desktop-portal.service
