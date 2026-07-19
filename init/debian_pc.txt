@@ -29,3 +29,7 @@ export KWIN_DRM_DEVICES=/dev/dri/card0:/dev/dri/card1
 fbcon=map:1
 2. 在kde里面配置：Display configuration
 3. 在kde里面配置：Color & Themes -> SDDM -> Apply Plasma Settings
+
+# 拼音输入：
+apt --no-install-recommends install fcitx5-pinyin kde-config-fcitx5
+## 设置->输入输出->键盘->虚拟键盘 -> 选择 fcitx5-wayland
