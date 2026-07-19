@@ -60,5 +60,5 @@ systemctl --user stop xdg-desktop-portal.service
 ## kactivitymanagerd: 禁用会黑屏
 systemctl --user mask plasma-kactivitymanagerd.service
 systemctl --user stop plasma-kactivitymanagerd.service
-## packagekit
-apt autopurge packagekit
+## packagekit: 软件包自动更新相关
+apt autopurge packagekit plasma-discover appstream
