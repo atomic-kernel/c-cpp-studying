@@ -25,7 +25,9 @@ swapon /dev/nvme0n1p7
 pacstrap -i /mnt pacman
 genfstab -U /mnt > /mnt/etc/fstab
 arch-chroot -S /mnt
-pacman -S linux linux-firmware mkinitcpio grub2 nmtui systemd
-pacman -S vim
+pacman -S grub mkinitcpio systemd
+pacman -S linux linux-firmware networkmanager
+pacman -S vim procps-ng git git-lfs file openssh wget curl ca-certificates vim tar gzip xz bzip2 rpm2cpio cpio iputils bind make diffutils patch gdb nano xxd util-linux zip unzip iproute2 net-tools patchelf gawk sshpass ninja autoconf automake cmake perl-mailtools perl-authen-sasl e2fsprogs
 mkinitcpio -P
+grub-mkconfig -o /boot/grub/grub.cfg
 passwd
