@@ -1,1 +1,31 @@
+# 1. 字体
+setfont -d ter-132b
 
+# 2. 联网
+## 网线自动DHCP
+## WIFI: 参考 https://wiki.archlinuxcn.org/wiki/Iwd#iwctl
+## 执行 ip addr + ping 验证
+
+# 3. 分区略
+
+# 4. 格式化
+mkfs.fat -F 32 /dev/nvme0n1p5
+mkfs.ext4 /dev/nvme0n1p6
+mkswap /dev/nvme0n1p7
+
+# 5. 挂载
+mount /dev/nvme0n1p6 /mnt
+mount --mkdir /mnt/boot /dev/nvme0n1p5
+swapon /dev/nvme0n1p7
+
+# 6. 软件源
+编辑 /etc/pacman.d/mirrorlist 仅保留 清华
+
+# 7. 安装
+pacstrap -i /mnt pacman
+genfstab -U /mnt > /mnt/etc/fstab
+arch-chroot -S /mnt
+pacman -S linux linux-firmware mkinitcpio grub2 nmtui systemd
+pacman -S vim
+mkinitcpio -P
+passwd
