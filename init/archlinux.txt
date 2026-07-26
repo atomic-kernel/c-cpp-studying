@@ -25,9 +25,25 @@ swapon /dev/nvme0n1p7
 pacstrap -i /mnt pacman
 genfstab -U /mnt > /mnt/etc/fstab
 arch-chroot -S /mnt
+
+# 8. 时区和时间
+ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+hwclock --systohc
+
+# 9. 语言
+## 修改 /etc/locale.gen
+locale-gen
+
+
 pacman -S grub mkinitcpio systemd
 pacman -S linux linux-firmware networkmanager
 pacman -S vim procps-ng git git-lfs file openssh wget curl ca-certificates vim tar gzip xz bzip2 rpm2cpio cpio iputils bind make diffutils patch gdb nano xxd util-linux zip unzip iproute2 net-tools patchelf gawk sshpass ninja autoconf automake cmake perl-mailtools perl-authen-sasl e2fsprogs
 mkinitcpio -P
+grub-install --efi-directory=/boot
+grub-mkconfig -o /boot/grub/grub.cfg
+
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+## 如果失败
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB --removable
 grub-mkconfig -o /boot/grub/grub.cfg
 passwd
