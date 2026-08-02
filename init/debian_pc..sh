@@ -48,16 +48,24 @@ systemctl disable wpa_supplicant
 
 # 禁用 walletd
 mkdir -p ~/.local/share/dbus-1/services/
+if [ ! -e ~/.local/share/dbus-1/services/org.kde.kwalletd6.service ]; then
 cat > ~/.local/share/dbus-1/services/org.kde.kwalletd6.service << EOF
 [D-BUS Service]
 Name=org.kde.kwalletd6
 Exec=/bin/false
 EOF
+fi
 
 # 修复键盘F1 - F12不可用
-echo 'options hid_apple fnmode=2' > /etc/modprobe.d/hid_apple.conf
+if [ ! -e /etc/modprobe.d/hid_apple.conf ]; then
+        echo 'options hid_apple fnmode=2' > /etc/modprobe.d/hid_apple.conf
+fi
 # 修复root无法登陆
-cp /etc/pam.d/common-auth /etc/pam.d/kde
+if [ ! -e /etc/pam.d/kde ]; then
+        cp /etc/pam.d/common-auth /etc/pam.d/kde
+fi
+# 允许root声音
+sed -i '/^ConditionUser=!root/d' $(grep -l root $(find /usr/lib/systemd/user -type f))
 
 # 配置cmdline
 sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=".*"/GRUB_CMDLINE_LINUX_DEFAULT="nouveau.modeset=1 amdgpu.modeset=1 amdgpu.dcfeaturemask=0x400 lsm= selinux=0 apparmor=0 nokaslr audit=0 ima=off ima_appraise=off evm=fix no_file_caps nowatchdog nosoftlockup no_debug_objects vm_debug=- debug_pagealloc=off page_poison=off schedstats=disable traceoff_after_boot split_lock_detect=off kmemleak=off debugfs=off kfence.sample_interval=0 mitigations=off kpti=0 kvm-intel.vmentry_l1d_flush=never hardened_usercopy=off randomize_kstack_offset=0 tsa=off cfi=off kunit.enable=0 preempt=full transparent_hugepage=always mce=off nopku vsyscall=none psi=off no5lvl random.trust_cpu=on random.trust_bootloader=on mem_encrypt=off x2apic_phys skew_tick=1 cgroup_disable=cpu,cpuset,cpuacct,io,memory,devices,freezer,net_cls,perf_event,hugetlb,pids,rdma,misc,dmem,debug,pressure hibernate=no"/g' /etc/default/grub
