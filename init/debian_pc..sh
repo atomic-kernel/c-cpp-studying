@@ -33,7 +33,9 @@ apt -t experimental update
 apt -t experimental install linux-image-amd64
 
 # 安装kde
-apt --no-install-recommends install plasma-desktop systemsettings kscreen plasma-pa wireplumber plasma-nm fonts-noto-cjk-extra fonts-noto-color-emoji dolphin kmenuedit fcitx5-pinyin kde-config-fcitx5
+apt --no-install-recommends install plasma-desktop systemsettings kscreen plasma-pa wireplumber plasma-nm fonts-noto-cjk-extra fonts-noto-color-emoji dolphin kmenuedit fcitx5-pinyin kde-config-fcitx5 fcitx5-modules
+# 终端
+apt --no-install-recommends install tilix libharfbuzz-gobject0 gsettings-desktop-schemas
 
 # 设置NewworkManager网络接管
 apt autopurge ifupdown*
@@ -77,6 +79,9 @@ fi
 update-grub
 
 reboot
+
+# steam
+apt --no-install-recommends install libc6:amd64 libc6:i386 libegl1:amd64 libegl1:i386 libgbm1:amd64 libgbm1:i386 libgl1-mesa-dri:amd64 libgl1-mesa-dri:i386 libgl1:amd64 libgl1:i386 steam-libs-amd64:amd64 steam-libs-i386:i386 xdg-desktop-portal xdg-desktop-portal-kde pulseaudio-utils
 
 sleep 3
 LANG="zh_CN.UTF-8" LANGUAGE="zh_CN.UTF-8" exec startplasma-wayland
