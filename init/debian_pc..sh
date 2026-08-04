@@ -59,6 +59,22 @@ Exec=/bin/false
 EOF
 fi
 
+if [ ! -e ~/.local/share/dbus-1/services/org.kde.secretservicecompat.service ]; then
+cat > ~/.local/share/dbus-1/services/org.kde.secretservicecompat.service << EOF
+[D-BUS Service]
+Name=org.kde.secretservicecompat
+Exec=/bin/false
+EOF
+fi
+
+if [ ! -e ~/.local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.kwallet.service ]; then
+cat > ~/.local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.kwallet.service << EOF
+[D-BUS Service]
+Name=org.freedesktop.impl.portal.desktop.kwallet
+Exec=/bin/false
+EOF
+fi
+
 # 修复键盘F1 - F12不可用
 if [ ! -e /etc/modprobe.d/hid_apple.conf ]; then
         echo 'options hid_apple fnmode=2' > /etc/modprobe.d/hid_apple.conf
