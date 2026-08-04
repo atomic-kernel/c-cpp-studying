@@ -7,7 +7,12 @@ dpkg-reconfigure console-setup
 
 # 禁用ipv6
 sysctl net.ipv6.conf.all.disable_ipv6=1
-echo 'net.ipv6.conf.all.disable_ipv6 = 1' > /etc/sysctl.d/01-disable_ipv6.conf
+echo 'net.ipv6.conf.all.disable_ipv6 = 1' > /etc/sysctl.d/01-me.conf
+echo 'kernel.sched_autogroup_enabled = 0' >> /etc/sysctl.d/01-me.conf
+echo 'net.ipv4.tcp_congestion_control = bbr' >> /etc/sysctl.d/01-me.conf
+echo 'net.core.default_qdisc = cake' >> /etc/sysctl.d/01-me.conf
+echo 'net.ipv4.tcp_ecn = 0' >> /etc/sysctl.d/01-me.conf
+echo 'net.ipv4.tcp_fastopen = 3' >> /etc/sysctl.d/01-me.conf
 
 # 设置源
 cat > /etc/apt/sources.list.d/debian.sources << EOF
