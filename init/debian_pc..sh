@@ -43,7 +43,8 @@ nano /etc/network/interfaces
 
 # 低噪优化
 systemctl disable udisks2 accounts-daemon systemd-hostnamed
-systemctl mask udisks2 systemd-hostnamed
+systemctl mask udisks2 systemd-hostnamed polkit
+systemctl --user mask plasma-polkit-agent
 systemctl disable systemd-networkd.service systemd-networkd.socket
 # 但是不能卸载
 systemctl disable wpa_supplicant
