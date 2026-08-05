@@ -39,6 +39,8 @@ apt -t experimental install linux-image-amd64
 
 # 安装kde
 apt --no-install-recommends install plasma-desktop systemsettings kscreen plasma-pa wireplumber plasma-nm fonts-noto-cjk-extra fonts-noto-color-emoji dolphin kmenuedit fcitx5-pinyin kde-config-fcitx5 fcitx5-modules
+# 时钟同步
+apt --no-install-recommends install chrony
 # 设置面板网络代理选项
 apt --no-install-recommends install kio-extras
 # 终端
