@@ -39,6 +39,8 @@ apt -t experimental install linux-image-amd64
 
 # 安装kde
 apt --no-install-recommends install plasma-desktop systemsettings kscreen plasma-pa wireplumber plasma-nm fonts-noto-cjk-extra fonts-noto-color-emoji dolphin kmenuedit fcitx5-pinyin kde-config-fcitx5 fcitx5-modules
+# 设置面板网络代理选项
+apt --no-install-recommends install kio-extras
 # 终端
 apt --no-install-recommends install tilix libharfbuzz-gobject0 gsettings-desktop-schemas
 
@@ -54,7 +56,7 @@ systemctl disable systemd-networkd.service systemd-networkd.socket
 # 但是不能卸载
 systemctl disable wpa_supplicant
 
-# 禁用 walletd
+# 禁用 walletd/密码库
 mkdir -p ~/.local/share/dbus-1/services/
 if [ ! -e ~/.local/share/dbus-1/services/org.kde.kwalletd6.service ]; then
 cat > ~/.local/share/dbus-1/services/org.kde.kwalletd6.service << EOF
@@ -63,7 +65,6 @@ Name=org.kde.kwalletd6
 Exec=/bin/false
 EOF
 fi
-
 if [ ! -e ~/.local/share/dbus-1/services/org.kde.secretservicecompat.service ]; then
 cat > ~/.local/share/dbus-1/services/org.kde.secretservicecompat.service << EOF
 [D-BUS Service]
@@ -71,7 +72,6 @@ Name=org.kde.secretservicecompat
 Exec=/bin/false
 EOF
 fi
-
 if [ ! -e ~/.local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.kwallet.service ]; then
 cat > ~/.local/share/dbus-1/services/org.freedesktop.impl.portal.desktop.kwallet.service << EOF
 [D-BUS Service]
