@@ -50,10 +50,34 @@ apt --no-install-recommends install tilix libharfbuzz-gobject0 gsettings-desktop
 apt autopurge ifupdown*
 nano /etc/network/interfaces
 
+# 修复键盘F1 - F12不可用
+if [ ! -e /etc/modprobe.d/hid_apple.conf ]; then
+        echo 'options hid_apple fnmode=2' > /etc/modprobe.d/hid_apple.conf
+fi
+# 修复root无法登陆
+if [ ! -e /etc/pam.d/kde ]; then
+        cp /etc/pam.d/common-auth /etc/pam.d/kde
+fi
+# 允许root声音
+sed -i '/^ConditionUser=!root/d' $(find /usr/lib/systemd/user -type f)
+
+# 配置cmdline
+sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=".*"/GRUB_CMDLINE_LINUX_DEFAULT="nouveau.modeset=1 amdgpu.modeset=1 amdgpu.dcfeaturemask=0x400 lsm= selinux=0 apparmor=0 nokaslr audit=0 ima=off ima_appraise=off evm=fix no_file_caps nowatchdog nosoftlockup no_debug_objects vm_debug=- debug_pagealloc=off page_poison=off schedstats=disable traceoff_after_boot split_lock_detect=off kmemleak=off debugfs=off kfence.sample_interval=0 mitigations=off kpti=0 kvm-intel.vmentry_l1d_flush=never hardened_usercopy=off randomize_kstack_offset=0 tsa=off cfi=off kunit.enable=0 preempt=full transparent_hugepage=always mce=off nopku vsyscall=none psi=off no5lvl random.trust_cpu=on random.trust_bootloader=on mem_encrypt=off x2apic_phys skew_tick=1 cgroup_disable=cpu,cpuset,cpuacct,io,memory,devices,freezer,net_cls,perf_event,hugetlb,pids,rdma,misc,dmem,debug,pressure hibernate=no"/g' /etc/default/grub
+# 不要检测其他系统
+if ! grep -q '^GRUB_DISABLE_OS_PROBER=true' /etc/default/grub; then
+        #sed -i '/GRUB_DISABLE_OS_PROBER/d' /etc/default/grub
+        echo GRUB_DISABLE_OS_PROBER=true >> /etc/default/grub
+fi
+update-grub
+
+reboot
+
 # 低噪优化
-systemctl disable udisks2 accounts-daemon systemd-hostnamed
-systemctl mask udisks2 systemd-hostnamed polkit
-systemctl --user mask plasma-polkit-agent
+systemctl disable udisks2 accounts-daemon systemd-hostnamed systemd-journald systemd-journalctl.socket
+systemctl mask udisks2 systemd-hostnamed polkit systemd-journald systemd-journald.socket systemd-journald-dev-log.socket systemd-journald-audit.socket systemd-journalctl.socket
+systemctl --user mask plasma-polkit-agent drkonqi-coredump-launcher.socket
+rm -f /usr/lib/systemd/system/sockets.target.wants/*journal*
+rm -f /usr/lib/systemd/user/sockets.target.wants/drkonqi-coredump-launcher.socket /usr/lib/systemd/user/sockets.target.wants/*journal*
 systemctl disable systemd-networkd.service systemd-networkd.socket
 # 但是不能卸载
 systemctl disable wpa_supplicant
@@ -81,28 +105,6 @@ Name=org.freedesktop.impl.portal.desktop.kwallet
 Exec=/bin/false
 EOF
 fi
-
-# 修复键盘F1 - F12不可用
-if [ ! -e /etc/modprobe.d/hid_apple.conf ]; then
-        echo 'options hid_apple fnmode=2' > /etc/modprobe.d/hid_apple.conf
-fi
-# 修复root无法登陆
-if [ ! -e /etc/pam.d/kde ]; then
-        cp /etc/pam.d/common-auth /etc/pam.d/kde
-fi
-# 允许root声音
-sed -i '/^ConditionUser=!root/d' $(find /usr/lib/systemd/user -type f)
-
-# 配置cmdline
-sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=".*"/GRUB_CMDLINE_LINUX_DEFAULT="nouveau.modeset=1 amdgpu.modeset=1 amdgpu.dcfeaturemask=0x400 lsm= selinux=0 apparmor=0 nokaslr audit=0 ima=off ima_appraise=off evm=fix no_file_caps nowatchdog nosoftlockup no_debug_objects vm_debug=- debug_pagealloc=off page_poison=off schedstats=disable traceoff_after_boot split_lock_detect=off kmemleak=off debugfs=off kfence.sample_interval=0 mitigations=off kpti=0 kvm-intel.vmentry_l1d_flush=never hardened_usercopy=off randomize_kstack_offset=0 tsa=off cfi=off kunit.enable=0 preempt=full transparent_hugepage=always mce=off nopku vsyscall=none psi=off no5lvl random.trust_cpu=on random.trust_bootloader=on mem_encrypt=off x2apic_phys skew_tick=1 cgroup_disable=cpu,cpuset,cpuacct,io,memory,devices,freezer,net_cls,perf_event,hugetlb,pids,rdma,misc,dmem,debug,pressure hibernate=no"/g' /etc/default/grub
-# 不要检测其他系统
-if ! grep -q '^GRUB_DISABLE_OS_PROBER=true' /etc/default/grub; then
-        #sed -i '/GRUB_DISABLE_OS_PROBER/d' /etc/default/grub
-        echo GRUB_DISABLE_OS_PROBER=true >> /etc/default/grub
-fi
-update-grub
-
-reboot
 
 # steam
 apt --no-install-recommends install libc6:amd64 libc6:i386 libegl1:amd64 libegl1:i386 libgbm1:amd64 libgbm1:i386 libgl1-mesa-dri:amd64 libgl1-mesa-dri:i386 libgl1:amd64 libgl1:i386 steam-libs-amd64:amd64 steam-libs-i386:i386 xdg-desktop-portal xdg-desktop-portal-kde pulseaudio-utils
