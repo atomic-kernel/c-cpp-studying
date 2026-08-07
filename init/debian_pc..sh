@@ -76,7 +76,7 @@ reboot
 apt update
 apt -t experimental update
 apt --no-install-recommends full-upgrade
-apt -t experimental install libegl-mesa0:amd64 libegl-mesa0:i386 libgl1-mesa-dri:amd64 libgl1-mesa-dri:i386 libglx-mesa0:amd64 libglx-mesa0:i386 mesa-libgallium:amd64 mesa-libgallium:i386 libvulkan1:amd64 libvulkan1:i386 linux-image-amd64
+apt -t experimental install libegl-mesa0:amd64 libegl-mesa0:i386 libgl1-mesa-dri:amd64 libgl1-mesa-dri:i386 libglx-mesa0:amd64 libglx-mesa0:i386 mesa-libgallium:amd64 mesa-libgallium:i386 libvulkan1:amd64 libvulkan1:i386 mesa-vulkan-drivers mesa-vulkan-drivers:i386 linux-image-amd64
 
 # 低噪优化
 systemctl disable udisks2 accounts-daemon systemd-hostnamed systemd-journald systemd-journalctl.socket
@@ -113,7 +113,7 @@ EOF
 fi
 
 # steam
-apt --no-install-recommends install libc6:amd64 libc6:i386 libegl1:amd64 libegl1:i386 libgbm1:amd64 libgbm1:i386 libgl1-mesa-dri:amd64 libgl1-mesa-dri:i386 libgl1:amd64 libgl1:i386 steam-libs-amd64:amd64 steam-libs-i386:i386 xdg-desktop-portal xdg-desktop-portal-kde pulseaudio-utils
+apt --no-install-recommends install libc6:amd64 libc6:i386 libegl1:amd64 libegl1:i386 libgbm1:amd64 libgbm1:i386 libgl1-mesa-dri:amd64 libgl1-mesa-dri:i386 libgl1:amd64 libgl1:i386 steam-libs-amd64:amd64 steam-libs-i386:i386 xdg-desktop-portal xdg-desktop-portal-kde pulseaudio-utils mesa-vulkan-drivers mesa-vulkan-drivers:i386
 
 sleep 3
 LANG="zh_CN.UTF-8" LANGUAGE="zh_CN.UTF-8" exec startplasma-wayland
