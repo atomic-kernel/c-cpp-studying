@@ -62,7 +62,7 @@ fi
 sed -i '/^ConditionUser=!root/d' $(find /usr/lib/systemd/user -type f)
 
 # 配置cmdline
-sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=".*"/GRUB_CMDLINE_LINUX_DEFAULT="nouveau.modeset=1 amdgpu.modeset=1 amdgpu.dcfeaturemask=0x400 lsm= selinux=0 apparmor=0 nokaslr audit=0 ima=off ima_appraise=off evm=fix no_file_caps nowatchdog nosoftlockup no_debug_objects vm_debug=- debug_pagealloc=off page_poison=off schedstats=disable traceoff_after_boot split_lock_detect=off kmemleak=off debugfs=off kfence.sample_interval=0 mitigations=off kpti=0 kvm-intel.vmentry_l1d_flush=never hardened_usercopy=off randomize_kstack_offset=0 tsa=off cfi=off kunit.enable=0 preempt=full transparent_hugepage=always mce=off nopku vsyscall=none psi=off no5lvl random.trust_cpu=on random.trust_bootloader=on mem_encrypt=off x2apic_phys skew_tick=1 cgroup_disable=cpu,cpuset,cpuacct,io,memory,devices,freezer,net_cls,perf_event,hugetlb,pids,rdma,misc,dmem,debug,pressure hibernate=no"/g' /etc/default/grub
+sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=".*"/GRUB_CMDLINE_LINUX_DEFAULT="nouveau.modeset=1 amdgpu.modeset=1 amdgpu.dcfeaturemask=0x400 lsm= selinux=0 apparmor=0 nokaslr audit=0 ima=off ima_appraise=off evm=fix no_file_caps nowatchdog nosoftlockup no_debug_objects vm_debug=- debug_pagealloc=off page_poison=off schedstats=disable traceoff_after_boot split_lock_detect=off kmemleak=off debugfs=off kfence.sample_interval=0 mitigations=off kpti=0 kvm-intel.vmentry_l1d_flush=never hardened_usercopy=off randomize_kstack_offset=0 tsa=off cfi=off kunit.enable=0 preempt=full transparent_hugepage=always mce=off nopku vsyscall=none psi=off no5lvl random.trust_cpu=on random.trust_bootloader=on mem_encrypt=off x2apic_phys skew_tick=1 cgroup_disable=cpu,cpuset,cpuacct,io,memory,devices,freezer,net_cls,perf_event,hugetlb,pids,rdma,misc,dmem,debug,pressure hibernate=no clocksource=tsc"/g' /etc/default/grub
 # 不要检测其他系统
 if ! grep -q '^GRUB_DISABLE_OS_PROBER=true' /etc/default/grub; then
         #sed -i '/GRUB_DISABLE_OS_PROBER/d' /etc/default/grub
@@ -71,6 +71,12 @@ fi
 update-grub
 
 reboot
+
+# 日常更新
+apt update
+apt -t experimental update
+apt --no-install-recommends full-upgrade
+apt -t experimental install libegl-mesa0:amd64 libegl-mesa0:i386 libgl1-mesa-dri:amd64 libgl1-mesa-dri:i386 libglx-mesa0:amd64 libglx-mesa0:i386 mesa-libgallium:amd64 mesa-libgallium:i386 libvulkan1:amd64 libvulkan1:i386 linux-image-amd64
 
 # 低噪优化
 systemctl disable udisks2 accounts-daemon systemd-hostnamed systemd-journald systemd-journalctl.socket
