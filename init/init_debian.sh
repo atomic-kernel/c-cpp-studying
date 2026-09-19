@@ -7,6 +7,46 @@ gcc_version="16"
 apt --no-install-recommends -y install git git-lfs file openssh-client wget curl ca-certificates vim tar gzip xz-utils bzip2 lzma rpm2cpio cpio apt-file dpkg-dev iputils-ping bind9-dnsutils make diffutils patch gdb gdb-multiarch nano xxd bsdextrautils zip unzip iproute2 net-tools patchelf gawk sshpass ninja-build autoconf automake cmake git-email libmailtools-perl libmime-base64-perl libauthen-sasl-perl e2fsprogs
 apt-file update
 
+cat >> /etc/vim/vimrc.local <<EOF
+source \$VIMRUNTIME/defaults.vim
+let g:skip_defaults_vim = 1
+set mouse-=a
+"set expandtab
+set tabstop=8
+set shiftwidth=8
+set softtabstop=8
+set autoindent
+set smartindent
+set cindent
+set cinoptions+=g0
+set hlsearch
+"set number
+EOF
+
+# .bashrc
+alias ll='ls -alF'
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+sed -i '/^HISTSIZE=/d' ~/.bashrc
+sed -i '/^HISTFILESIZE=/d' ~/.bashrc
+sed -i '/^HISTTIMEFORMAT=/d' ~/.bashrc
+cat >> ~/.bashrc << EOF
+
+HISTSIZE=-1
+HISTFILESIZE=-1
+HISTTIMEFORMAT='%F %T '
+EOF
+
+
 ## 文本编辑器
 apt --no-install-recommends -y install featherpad qt6-wayland
 apt --no-install-recommends install qt6-wayland
@@ -75,46 +115,6 @@ apt --no-install-recommends -y install make bc flex bison python3-minimal libelf
 # vscode
 DONT_PROMPT_WSL_INSTALL=1 code --no-sandbox --user-data-dir /usr/local/vscode
 
-
-cat >> /etc/vim/vimrc.local <<EOF
-source \$VIMRUNTIME/defaults.vim
-let g:skip_defaults_vim = 1
-set mouse-=a
-"set expandtab
-set tabstop=8
-set shiftwidth=8
-set softtabstop=8
-set autoindent
-set smartindent
-set cindent
-set cinoptions+=g0
-set hlsearch
-"set number
-EOF
-
-# .bashrc
-alias ll='ls -alF'
-# enable color support of ls and also add handy aliases
-if [ -x /usr/bin/dircolors ]; then
-    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias ls='ls --color=auto'
-    #alias dir='dir --color=auto'
-    #alias vdir='vdir --color=auto'
-
-    alias grep='grep --color=auto'
-    alias fgrep='fgrep --color=auto'
-    alias egrep='egrep --color=auto'
-fi
-
-sed -i '/^HISTSIZE=/d' ~/.bashrc
-sed -i '/^HISTFILESIZE=/d' ~/.bashrc
-sed -i '/^HISTTIMEFORMAT=/d' ~/.bashrc
-cat >> ~/.bashrc << EOF
-
-HISTSIZE=-1
-HISTFILESIZE=-1
-HISTTIMEFORMAT='%F %T '
-EOF
 
 git config --global core.editor "vim"
 git config --global user.name xxx
