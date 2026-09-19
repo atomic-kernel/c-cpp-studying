@@ -19,6 +19,7 @@ systemctl restart docker
 3. 
 docker pull debian:experimental
 docker pull debian:unstable-slim
+docker pull debian:testing-slim
 ## 打包rootfs.tar，方法1：
 4. docker image save -o debian_image.tar debian
 5. debian_image.tar 进一步提取
