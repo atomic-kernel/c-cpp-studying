@@ -74,6 +74,8 @@ apt --no-install-recommends -y install locales
 dpkg-reconfigure locales
 apt --no-install-recommends -y install whiptail
 apt --no-install-recommends --auto-remove --purge -y full-upgrade
+# 规避失败
+mount -o remount,rw /tmp/.X11-unix
 apt --no-install-recommends -y install systemd-sysv kmod
 apt --no-install-recommends -y install libpam-systemd # -> dbus-user-session
 cat > /etc/wsl.conf << EOF
