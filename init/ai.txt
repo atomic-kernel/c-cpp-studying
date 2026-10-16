@@ -1,0 +1,16 @@
+# opencode
+curl -fsSL https://opencode.ai/v2/install | bash
+curl -fsSL https://opencode.ai/install | bash
+
+# dsh-tui
+apt --no-install-recommends install npm
+npm install --allow-scripts -g @deepseek-ai/dsh pnpm
+# 首次启动使用：`dsh plugin --profile dsh-tui add @deepseek-harness-tui/dsh-tui`，之后使用`dsh-tui`
+dsh plugin --profile dsh-tui add @deepseek-harness-tui/dsh-tui
+dsh-tui
+# 配置模型
+/provider
+
+# 更新：
+dsh plugin --profile dsh-tui add @deepseek-harness-tui/dsh-tui@latest
+pnpm add -g @deepseek-harness-tui/dsh-tui@latest
