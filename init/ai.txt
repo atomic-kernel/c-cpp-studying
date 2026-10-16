@@ -14,3 +14,11 @@ dsh-tui
 # 更新：
 dsh plugin --profile dsh-tui add @deepseek-harness-tui/dsh-tui@latest
 pnpm add -g @deepseek-harness-tui/dsh-tui@latest
+
+~/.dsh/profiles/dsh-tui/cordis.patch.yml
+```yaml
+- id: bash-sandbox
+  config:
+    timeoutMs: 30000
+    maxTimeoutMs: 80000
+```
