@@ -1,6 +1,33 @@
+cat > /etc/apt/sources.list.d/debian.sources << EOF
+Types: deb
+# http://snapshot.debian.org/archive/debian/20261027T000000Z
+URIs: http://mirrors.huaweicloud.com/debian
+Suites: testing testing-updates
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.pgp
+
+Types: deb
+# http://snapshot.debian.org/archive/debian-security/20261027T000000Z
+URIs: http://mirrors.huaweicloud.com/debian-security
+Suites: testing-security
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.pgp
+
+Types: deb
+URIs: http://mirrors.huaweicloud.com/debian/
+Suites: sid
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+
+cat > /etc/apt/preferences.d/99me << EOF
+Package: *
+Pin: release a=unstable
+Pin-Priority: 1
+EOF
 apt update
 
-clang_version="22"
+clang_version="23"
 gcc_version="16"
 
 # 常用操作
