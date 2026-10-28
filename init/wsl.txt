@@ -7,6 +7,7 @@ wsl --set-default-version 2
 1. 安装docker： 
 apt --no-install-recommends -y install docker.io
 apt --no-install-recommends -y install docker-cli
+apt --no-install-recommends -y install ca-certificates
 2. 配置docker代理：vim /usr/lib/systemd/system/docker.service
 ```
 [Service]
