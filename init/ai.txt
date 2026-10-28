@@ -4,21 +4,34 @@ curl -fsSL https://opencode.ai/install | bash
 
 # dsh-tui
 apt --no-install-recommends install npm
-npm install -g --allow-scripts=pnpm,@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs @deepseek-ai/dsh@latest pnpm
-# 首次启动使用：`dsh plugin --profile dsh-tui add @deepseek-harness-tui/dsh-tui`，之后使用`dsh-tui`
+# 安装/更新
+npm install -g --allow-scripts=pnpm,@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs @deepseek-ai/dsh@latest pnpm@latest
 dsh plugin --profile dsh-tui add @deepseek-harness-tui/dsh-tui@latest
+# 启动
 dsh --profile dsh-tui
 # 配置模型
 /provider
 
-# 更新：
-dsh plugin --profile dsh-tui add @deepseek-harness-tui/dsh-tui@latest
-pnpm add -g @deepseek-harness-tui/dsh-tui@latest
-
 ~/.dsh/profiles/dsh-tui/cordis.patch.yml
 ```yaml
+- insert:
+    - id: my-preset-patch-standard
+      name: '@deepseek-harness-tui/dsh-tui/preset-patch'
+      config:
+        preset: standard
+        config:
+          compaction-basic:
+            headroomTokens: 0
+            maxTokens: 65536
+            thresholdRatio: 0.9
+            retainRatio: 0.1
 - id: bash-sandbox
   config:
-    timeoutMs: 30000
-    maxTimeoutMs: 80000
+    timeoutMs: 80000
+    maxTimeoutMs: 120000
+```
+~/.dsh/AGENTS.md
+```md
+所有使用内置bash/shell/command工具执行的命令，timeout参数**严禁**设置超过120s；长任务必须放后台执行，或者至少每120s检查一次任务状态
+未经允许**严禁**修改全局配置（如`~/.bashrc`/`sysctl`等）或安装全局软件（如使用`apt/pip/npm`等）；若遇任何环境类问题，如遇工具报错/缺失，请反馈人类
 ```
