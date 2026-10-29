@@ -138,6 +138,8 @@ link_gcc_with_prefix ""
 
 # 内核编译
 apt --no-install-recommends -y install make bc flex bison python3-minimal libelf-dev libssl-dev libncurses-dev dwarves
+# qemu
+apt --no-install-recommends -y install qemu-system-arm qemu-efi-aarch64 u-boot-qemu u-boot-tools
 
 # vscode
 DONT_PROMPT_WSL_INSTALL=1 code --no-sandbox --user-data-dir /usr/local/vscode
