@@ -170,11 +170,11 @@ Host github.com
 EOF
 
 cat >> ~/.bashrc << EOF
-declare -x HTTPS_PROXY="http://192.168.3.3:10808"
-declare -x HTTP_PROXY="http://192.168.3.3:10808"
+declare -x HTTPS_PROXY="http://127.0.0.1:10808"
+declare -x HTTP_PROXY="http://127.0.0.1:10808"
 declare -x NO_PROXY="192.168.*,172.31.*,172.30.*,172.29.*,172.28.*,172.27.*,172.26.*,172.25.*,172.24.*,172.23.*,172.22.*,172.21.*,172.20.*,172.19.*,172.18.*,172.17.*,172.16.*,10.*,127.*,localhost,<local>"
-declare -x http_proxy="http://192.168.3.3:10808"
-declare -x https_proxy="http://192.168.3.3:10808"
+declare -x http_proxy="http://127.0.0.1:10808"
+declare -x https_proxy="http://127.0.0.1:10808"
 declare -x no_proxy="192.168.*,172.31.*,172.30.*,172.29.*,172.28.*,172.27.*,172.26.*,172.25.*,172.24.*,172.23.*,172.22.*,172.21.*,172.20.*,172.19.*,172.18.*,172.17.*,172.16.*,10.*,127.*,localhost,<local>"
 EOF
 
