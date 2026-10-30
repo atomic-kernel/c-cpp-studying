@@ -173,6 +173,7 @@ git config --global http.proxy "http://${__http_proxy}"
 git config --global https.proxy "http://${__http_proxy}"
 git config --global core.gitproxy /bin/git-proxy
 
+mkdir -p ~/.ssh
 cat >> ~/.ssh/config << EOF
 Host github.com
 	User git
