@@ -51,6 +51,8 @@ set hlsearch
 EOF
 
 # .bashrc
+useradd -rms /bin/bash xyb
+================= user ====================
 alias ll='ls -alF'
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
@@ -63,6 +65,7 @@ if [ -x /usr/bin/dircolors ]; then
     alias fgrep='fgrep --color=auto'
     alias egrep='egrep --color=auto'
 fi
+
 sed -i '/^HISTSIZE=/d' ~/.bashrc
 sed -i '/^HISTFILESIZE=/d' ~/.bashrc
 sed -i '/^HISTTIMEFORMAT=/d' ~/.bashrc
@@ -72,7 +75,15 @@ HISTSIZE=-1
 HISTFILESIZE=-1
 HISTTIMEFORMAT='%F %T '
 EOF
-
+cat >> ~/.bashrc << EOF
+declare -x HTTPS_PROXY="http://127.0.0.1:10808"
+declare -x HTTP_PROXY="http://127.0.0.1:10808"
+declare -x NO_PROXY="192.168.*,172.31.*,172.30.*,172.29.*,172.28.*,172.27.*,172.26.*,172.25.*,172.24.*,172.23.*,172.22.*,172.21.*,172.20.*,172.19.*,172.18.*,172.17.*,172.16.*,10.*,127.*,localhost,<local>"
+declare -x http_proxy="http://127.0.0.1:10808"
+declare -x https_proxy="http://127.0.0.1:10808"
+declare -x no_proxy="192.168.*,172.31.*,172.30.*,172.29.*,172.28.*,172.27.*,172.26.*,172.25.*,172.24.*,172.23.*,172.22.*,172.21.*,172.20.*,172.19.*,172.18.*,172.17.*,172.16.*,10.*,127.*,localhost,<local>"
+EOF
+================= user end ====================
 
 ## 文本编辑器
 apt --no-install-recommends -y install featherpad qt6-wayland
@@ -144,23 +155,22 @@ apt --no-install-recommends -y install qemu-system-arm qemu-efi-aarch64 u-boot-q
 # vscode
 DONT_PROMPT_WSL_INSTALL=1 code --no-sandbox --user-data-dir /usr/local/vscode
 
+apt --no-install-recommends -y install netcat-openbsd
+cat > /bin/git-proxy << EOF
+#!/bin/bash
+exec nc -x ${__socks5_proxy} -X 5 "\$1" "\$2"
+EOF
+chmod +x /bin/git-proxy
 
+================= user ====================
 git config --global core.editor "vim"
 git config --global user.name xxx
 git config --global user.email xxx
-
-apt --no-install-recommends -y install netcat-openbsd
 
 __http_proxy="127.0.0.1:1080"
 __socks5_proxy="127.0.0.1:1080"
 git config --global http.proxy "http://${__http_proxy}"
 git config --global https.proxy "http://${__http_proxy}"
-cat > /bin/git-proxy << EOF
-#!/bin/bash
-
-nc -x ${__socks5_proxy} -X 5 "\$1" "\$2"
-EOF
-chmod +x /bin/git-proxy
 git config --global core.gitproxy /bin/git-proxy
 
 cat >> ~/.ssh/config << EOF
@@ -168,16 +178,7 @@ Host github.com
 	User git
 	ProxyCommand nc -x ${__socks5_proxy} -X 5 %h %p
 EOF
-
-cat >> ~/.bashrc << EOF
-declare -x HTTPS_PROXY="http://127.0.0.1:10808"
-declare -x HTTP_PROXY="http://127.0.0.1:10808"
-declare -x NO_PROXY="192.168.*,172.31.*,172.30.*,172.29.*,172.28.*,172.27.*,172.26.*,172.25.*,172.24.*,172.23.*,172.22.*,172.21.*,172.20.*,172.19.*,172.18.*,172.17.*,172.16.*,10.*,127.*,localhost,<local>"
-declare -x http_proxy="http://127.0.0.1:10808"
-declare -x https_proxy="http://127.0.0.1:10808"
-declare -x no_proxy="192.168.*,172.31.*,172.30.*,172.29.*,172.28.*,172.27.*,172.26.*,172.25.*,172.24.*,172.23.*,172.22.*,172.21.*,172.20.*,172.19.*,172.18.*,172.17.*,172.16.*,10.*,127.*,localhost,<local>"
-EOF
-
+================= user end ====================
 
 cat >> ~/.inputrc << EOF
 
