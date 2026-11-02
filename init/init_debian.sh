@@ -31,8 +31,9 @@ clang_version="23"
 gcc_version="16"
 
 # 常用操作
-apt --no-install-recommends -y install git git-lfs file openssh-client wget curl ca-certificates vim tar gzip xz-utils bzip2 lzma rpm2cpio cpio apt-file dpkg-dev iputils-ping bind9-dnsutils make diffutils patch gdb gdb-multiarch nano xxd bsdextrautils zip unzip iproute2 net-tools patchelf gawk sshpass ninja-build autoconf automake cmake git-email libmailtools-perl libmime-base64-perl libauthen-sasl-perl e2fsprogs tmux device-tree-compiler 7zip less fdisk gdisk parted screen
+apt --no-install-recommends -y install git git-lfs file openssh-client wget curl ca-certificates vim tar gzip xz-utils bzip2 lzma rpm2cpio cpio apt-file dpkg-dev iputils-ping bind9-dnsutils make diffutils patch gdb gdb-multiarch nano xxd bsdextrautils zip unzip iproute2 net-tools patchelf gawk sshpass ninja-build autoconf automake cmake git-email libmailtools-perl libmime-base64-perl libauthen-sasl-perl e2fsprogs tmux device-tree-compiler 7zip less fdisk gdisk parted screen python3-docx pandoc python3-openpyxl python3-xlrd python3-xlsxwriter python3-pandas python3-pip
 apt-file update
+pip3 install python-pptx --break-system-packages
 
 cat >> /etc/vim/vimrc.local <<EOF
 source \$VIMRUNTIME/defaults.vim
