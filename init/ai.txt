@@ -22,13 +22,13 @@ dsh --profile dsh-tui
         config:
           compaction-basic:
             headroomTokens: 0
-            maxTokens: 65536
-            thresholdRatio: 0.9
+            maxTokens: 131072
+            thresholdRatio: 0.88
             retainRatio: 0.1
 - id: bash-sandbox
   config:
     timeoutMs: 80000
-    maxTimeoutMs: 120000
+    maxTimeoutMs: 12000
 ```
 ~/.dsh/AGENTS.md
 ```md
