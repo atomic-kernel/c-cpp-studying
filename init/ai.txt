@@ -35,3 +35,4 @@ dsh --profile dsh-tui
 所有使用内置bash/shell/command工具执行的命令，timeout参数**严禁**设置超过120s；长任务必须放后台执行，或者至少每120s检查一次任务状态
 未经允许**严禁**修改全局配置（如`~/.bashrc`/`sysctl`等）或安装全局软件（如使用`apt/pip/npm`等）；若遇任何环境类问题，如遇工具报错/缺失，请反馈人类
 ```
+/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-compaction-basic/lib/index.js
