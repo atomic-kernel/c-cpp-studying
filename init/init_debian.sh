@@ -85,6 +85,7 @@ declare -x https_proxy="http://127.0.0.1:10808"
 declare -x no_proxy="192.168.*,172.31.*,172.30.*,172.29.*,172.28.*,172.27.*,172.26.*,172.25.*,172.24.*,172.23.*,172.22.*,172.21.*,172.20.*,172.19.*,172.18.*,172.17.*,172.16.*,10.*,127.*,localhost,<local>"
 EOF
 ================= user end ====================
+## xray
 
 ## 文本编辑器
 apt --no-install-recommends -y install featherpad qt6-wayland
@@ -147,6 +148,7 @@ link_gcc_with_prefix arm-linux-gnueabi-
 link_gcc_with_prefix arm-linux-gnueabihf-
 link_gcc_with_prefix x86_64-linux-gnu-
 link_gcc_with_prefix ""
+## mv -n c-cpp-studying/init/compiler/* /bin
 
 # 内核编译
 apt --no-install-recommends -y install make bc flex bison python3-minimal libelf-dev libssl-dev libncurses-dev dwarves
@@ -180,6 +182,7 @@ Host github.com
 	User git
 	ProxyCommand nc -x ${__socks5_proxy} -X 5 %h %p
 EOF
+ssh-keygen -t ecdsa -C ""
 ================= user end ====================
 
 cat >> ~/.inputrc << EOF
