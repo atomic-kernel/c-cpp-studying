@@ -4,7 +4,7 @@ wsl --version
 wsl --set-default-version 2
 
 # Debian rootfs获取：
-apt --no-install-recommends install curl ca-certifications jq
+apt --no-install-recommends install curl ca-certificates jq
 curl -LO https://raw.githubusercontent.com/moby/moby/refs/heads/master/contrib/download-frozen-image-v2.sh
 bash download-frozen-image-v2.sh temp_dir testing-slim
 # 查看rootfs文件列表，如果多个，需要重打包
