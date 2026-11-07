@@ -3,40 +3,18 @@ wsl --update
 wsl --version
 wsl --set-default-version 2
 
-# Debian 安装包获取：
-1. 安装docker： 
-apt --no-install-recommends -y install docker.io
-apt --no-install-recommends -y install docker-cli
-apt --no-install-recommends -y install ca-certificates
-2. 配置docker代理：vim /usr/lib/systemd/system/docker.service
-```
-[Service]
-Environment="HTTP_PROXY=http://proxy.example.com:80"
-Environment="HTTPS_PROXY=https://proxy.example.com:443"
-Environment="NO_PROXY=xxx"
-```
-systemctl daemon-reload
-systemctl restart docker
-3. 
-docker pull debian:experimental
-docker pull debian:unstable-slim
-docker pull debian:testing-slim
-## 打包rootfs.tar，方法1：
-4. docker image save -o debian_image.tar debian
-5. debian_image.tar 进一步提取
-## 打包rootfs.tar，方法2：
-4. docker create --read-only d0107e067f7a  # image id (docker images -a)
-5. docker export 2a405ff59052 -o debian_rootfs.tar  # container_id (docker ps -a)
-
+# Debian rootfs获取：
+apt --no-install-recommends install curl ca-certifications jq
+curl -LO https://raw.githubusercontent.com/moby/moby/refs/heads/master/contrib/download-frozen-image-v2.sh
+bash download-frozen-image-v2.sh temp_dir testing-slim
+# 查看rootfs文件列表，如果多个，需要重打包
+cat manifest.json | jq -r '.[0].Layers[]'
 
 # Ubuntu 安装包获取
 https://cdimage.ubuntu.com/ubuntu-base/
 
 # tar/tar.gz 安装：
 wsl --import Debian-testing f:\wsl\debian_testing E:\xiazai\debian_xxx.tar.gz --version 2
-# wsl -d Ubuntu-24.10 -u root --cd /root -e env -i TERM=xterm-256color /bin/su -l root
-# wsl -d Ubuntu-24.10 -u root --cd /root -e /bin/bash --login
-# wsl -d Ubuntu-25.04 -u root --cd /root -e /bin/login -p -f root
 wsl -d Debian-testing -u root --cd /root -e /bin/setsid -cfw /bin/login -p -f root
 
 export LC_ALL=C LANG=C
