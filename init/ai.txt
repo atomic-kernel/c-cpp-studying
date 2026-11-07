@@ -5,7 +5,7 @@ curl -fsSL https://opencode.ai/install | bash
 # dsh-tui
 apt --no-install-recommends install npm
 # 安装/更新
-npm config set registry https://mirrors.huaweicloud.com/npm/
+npm config set registry https://repo.huaweicloud.com/repository/npm/
 npm install -g --allow-scripts=pnpm,@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs @deepseek-ai/dsh@latest pnpm@latest
 dsh plugin --profile dsh-tui add @deepseek-harness-tui/dsh-tui@latest
 # 启动
