@@ -15,6 +15,7 @@ dsh --profile dsh-tui
 
 ~/.dsh/profiles/dsh-tui/cordis.patch.yml
 ```yaml
+     reasoningEfforts: { off: , low: low, medium: medium, high: high, max: max }
 - insert:
     - id: my-preset-patch-standard
       name: '@deepseek-harness-tui/dsh-tui/preset-patch'
