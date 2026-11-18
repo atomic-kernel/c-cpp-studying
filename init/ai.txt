@@ -21,7 +21,7 @@ compat: { thinkingFormat: deepseek, supportsReasoningEffort: true, supportsStore
 glm厂商：
 compat: { thinkingFormat: zai, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_tokens }
 未知模型id、未知url、openai completions dsh默认：
-compat: { thinkingFormat: openai, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_tokens }
+compat: { thinkingFormat: openai, supportsReasoningEffort: true, supportsStore: true, supportsDeveloperRole: true, supportsStrictMode: false, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_completion_tokens }
 DashScope厂商（本网关）：
 compat: { thinkingFormat: qwen, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_completion_tokens }
 
