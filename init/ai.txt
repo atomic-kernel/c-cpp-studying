@@ -16,6 +16,19 @@ dsh --profile dsh-tui
 ~/.dsh/profiles/dsh-tui/cordis.patch.yml
 ```yaml
      reasoningEfforts: { off: , low: low, medium: medium, high: high, max: max }
+deepseek厂商:
+compat: { thinkingFormat: deepseek, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: true, maxTokensField: max_tokens }
+glm厂商：
+compat: { thinkingFormat: zai, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_tokens }
+openai厂商：
+compat: { thinkingFormat: openai, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_tokens }
+DashScope厂商（本网关）：
+compat: { thinkingFormat: qwen, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_completion_tokens }
+
+supportsReasoningEffort：是否支持设置挡位
+supportsStore：是否支持远端存储
+supportsStrictMode：工具定义里能否带 "strict": true（严格 JSON Schema），端点支持就 true（少一层模型瞎编参数）
+
 - insert:
     - id: my-preset-patch-standard
       name: '@deepseek-harness-tui/dsh-tui/preset-patch'
