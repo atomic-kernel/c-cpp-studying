@@ -23,7 +23,7 @@ compat: { thinkingFormat: zai, supportsReasoningEffort: true, supportsStore: fal
 未知模型id、未知url、openai completions dsh默认：
 compat: { thinkingFormat: openai, supportsReasoningEffort: true, supportsStore: true, supportsDeveloperRole: true, supportsStrictMode: false, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_completion_tokens }
 DashScope厂商（本网关）：
-compat: { thinkingFormat: qwen, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_completion_tokens }
+compat: { thinkingFormat: qwen, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_completion_tokens/max_tokens }
 
 supportsReasoningEffort：是否支持设置挡位
 supportsStore：是否支持远端存储
