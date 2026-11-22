@@ -1,20 +1,20 @@
 cat > /etc/apt/sources.list.d/debian.sources << EOF
 Types: deb
 # http://snapshot.debian.org/archive/debian/20261027T000000Z
-URIs: http://mirrors.huaweicloud.com/debian
+URIs: http://mirrors.tuna.tsinghua.edu.cn/debian
 Suites: testing testing-updates
 Components: main
 Signed-By: /usr/share/keyrings/debian-archive-keyring.pgp
 
 Types: deb
 # http://snapshot.debian.org/archive/debian-security/20261027T000000Z
-URIs: http://mirrors.huaweicloud.com/debian-security
+URIs: http://mirrors.tuna.tsinghua.edu.cn/debian-security
 Suites: testing-security
 Components: main
 Signed-By: /usr/share/keyrings/debian-archive-keyring.pgp
 
 Types: deb
-URIs: http://mirrors.huaweicloud.com/debian/
+URIs: http://mirrors.tuna.tsinghua.edu.cn/debian/
 Suites: sid
 Components: main contrib non-free non-free-firmware
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
