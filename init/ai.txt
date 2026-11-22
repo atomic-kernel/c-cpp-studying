@@ -3,7 +3,7 @@ curl -fsSL https://opencode.ai/v2/install | bash
 curl -fsSL https://opencode.ai/install | bash
 
 # dsh-tui
-apt --no-install-recommends install npm
+apt --no-install-recommends install npm cmake
 # 安装/更新
 npm config set registry https://repo.huaweicloud.com/repository/npm/
 npm install -g --allow-scripts=pnpm,@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs @deepseek-ai/dsh@latest pnpm@latest
