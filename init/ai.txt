@@ -85,7 +85,7 @@ supportsStrictMode：工具定义里能否带 "strict": true（严格 JSON Schem
 ```
 ~/.dsh/AGENTS.md
 ```md
-所有使用内置bash/shell/command工具执行的命令，timeout参数**严禁**设置超过120s；长任务必须放后台执行，或者至少每120s检查一次任务状态
+所有使用内置bash/shell/command工具执行的命令，timeout参数**严禁**设置超过120s；长任务至少每120s必须检查一次任务状态，**严禁**在有尚未结束的job/任务的情况下结束回合
 未经允许**严禁**修改全局配置（如`~/.bashrc`/`sysctl`等）或安装全局软件（如使用`apt/pip/npm`等）；若遇任何环境类问题，如遇工具报错/缺失，请反馈人类
 ```
 sed -i 's/const thresholdTokens = Math.floor(Math.min(contextWindow \* policy.thresholdRatio, pressureBudgetTokens));/const thresholdTokens = Math.floor(contextWindow * policy.thresholdRatio);/g' "$(realpath "$(dirname "$(type -P dsh)")/../lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-compaction-basic/lib/index.js")"
