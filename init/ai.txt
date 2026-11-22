@@ -22,13 +22,47 @@ glm厂商：
 compat: { thinkingFormat: zai, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_tokens }
 未知模型id、未知url、openai completions dsh默认：
 compat: { thinkingFormat: openai, supportsReasoningEffort: true, supportsStore: true, supportsDeveloperRole: true, supportsStrictMode: false, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_completion_tokens }
-DashScope厂商（本网关）：
-compat: { thinkingFormat: qwen, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_completion_tokens/max_tokens }
+#DashScope厂商（本网关）：
+#compat: { thinkingFormat: qwen, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: false, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_completion_tokens/max_tokens }
 
 supportsReasoningEffort：是否支持设置挡位
 supportsStore：是否支持远端存储
 supportsStrictMode：工具定义里能否带 "strict": true（严格 JSON Schema），端点支持就 true（少一层模型瞎编参数）
 
+# Your patch layer for this dsh profile, applied after every bundle layer:
+# a top-level YAML array of loader patch entries (id-targeted config
+# overrides, disables, and insert lists; `!!js` expressions allowed).
+- id: llm-pi-ai
+  name: "@deepseek-ai/dsh-llm-pi-ai"
+  config:
+    providers:
+      huawei:
+        apiKeyEnv: HUAWEI_API_KEY
+        # 直连网关：思考字段由 dsh-llm-pi-ai 的 litellm-fit 补丁搬进 extra_body。
+        baseURL: http://113.46.219.251:8080/v1
+        #baseURL: http://127.0.0.1:18080/v1
+        api: openai-completions
+        compat: { thinkingFormat: deepseek, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: true, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_tokens }
+        models:
+          - id: GLM-5.3
+            contextWindow: 1000000
+            maxTokens: 131072
+            reasoningEfforts: {off: null, low: low, high: high, max: max}
+            compat: { thinkingFormat: zai }
+          - id: DeepSeek-V4.1-Flash-1017
+            contextWindow: 1000000
+            maxTokens: 393216
+            reasoningEfforts: {off: null, low: low, high: high, max: max}
+        retryPolicy:
+          mode: normal
+          maxRetries: 5
+          retryableCodes:
+            - EMPTY_RESPONSE
+            - RATE_LIMIT
+            - SERVER
+            - TIMEOUT
+            - TRANSPORT
+            - STREAM_CLOSED
 - insert:
     - id: my-preset-patch-standard
       name: '@deepseek-harness-tui/dsh-tui/preset-patch'
@@ -40,10 +74,15 @@ supportsStrictMode：工具定义里能否带 "strict": true（严格 JSON Schem
             maxTokens: 131072
             thresholdRatio: 0.88
             retainRatio: 0.1
+          # 等待job的时间上限120s，这是另一套机制（相对于bash-sandbox），通常一个bash命令一个job，除此之外还有别的job
+          tool-jobs:
+            waitTimeoutMs: 120000
+            maxWaitTimeoutMs: 120000
 - id: bash-sandbox
   config:
-    timeoutMs: 80000
-    maxTimeoutMs: 12000
+    # 上限 120 秒：超过就从前台转入后台（模型随后开始 120 秒一轮的轮询）。
+    timeoutMs: 120000
+    maxTimeoutMs: 120000
 ```
 ~/.dsh/AGENTS.md
 ```md
