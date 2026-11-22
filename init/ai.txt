@@ -38,9 +38,8 @@ supportsStrictMode：工具定义里能否带 "strict": true（严格 JSON Schem
     providers:
       huawei:
         apiKeyEnv: HUAWEI_API_KEY
-        # 直连网关：思考字段由 dsh-llm-pi-ai 的 litellm-fit 补丁搬进 extra_body。
+        # 需要打入直连补丁
         baseURL: http://113.46.219.251:8080/v1
-        #baseURL: http://127.0.0.1:18080/v1
         api: openai-completions
         compat: { thinkingFormat: deepseek, supportsReasoningEffort: true, supportsStore: false, supportsDeveloperRole: true, supportsStrictMode: true, requiresReasoningContentOnAssistantMessages: false, maxTokensField: max_tokens }
         models:
