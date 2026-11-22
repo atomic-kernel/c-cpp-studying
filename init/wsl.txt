@@ -15,7 +15,7 @@ https://cdimage.ubuntu.com/ubuntu-base/
 
 # tar/tar.gz 安装：
 wsl --import Debian-testing f:\wsl\debian_testing E:\xiazai\debian_xxx.tar.gz --version 2
-wsl -d Debian-testing -u root --cd /root -e /bin/setsid -cfw /bin/login -p -f root
+wsl -d Debian-testing -u root --cd /root -e /bin/setsid -cfw /bin/login -pf root
 
 export LC_ALL=C LANG=C
 
